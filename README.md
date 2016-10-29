@@ -1,0 +1,1 @@
+A platform for experimental work on electric motor control.
