@@ -1,4 +1,4 @@
-update=Lördag 29 Oktober 2016 23:31:50
+update=Lördag 05 November 2016 13:02:39
 version=1
 last_client=kicad
 [pcbnew]
@@ -27,7 +27,7 @@ NetIExt=net
 version=1
 [eeschema]
 version=1
-LibDir=symbols/stm32-kicad-lib;symbols/drv8301
+LibDir=symbols/stm32-kicad-lib;symbols/drv8301;symbols;symbols/WSLP2726;symbols/test-pad
 [eeschema/libraries]
 LibName1=74xgxx
 LibName2=74xx
@@ -106,3 +106,5 @@ LibName74=Xicor
 LibName75=xilinx
 LibName76=Zilog
 LibName77=symbols/drv8301/drv8301
+LibName78=symbols/WSLP2726/wslp2726
+LibName79=symbols/test-pad/test
