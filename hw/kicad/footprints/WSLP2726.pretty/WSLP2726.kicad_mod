@@ -1,8 +1,8 @@
-(module CRF1:WSLP2726 (layer F.Cu) (tedit 509998E8)
-  (fp_text reference R54 (at 0 2.54 90) (layer F.SilkS)
+(module WSLP2726 (layer F.Cu) (tedit 581DCFC2)
+  (fp_text reference R? (at -0.78232 7.11962 180) (layer F.SilkS)
     (effects (font (thickness 0.3048)))
   )
-  (fp_text value SHUNT (at 0 -3.937) (layer F.SilkS) hide
+  (fp_text value WSLP2726 (at 0 -3.937) (layer F.SilkS) hide
     (effects (font (thickness 0.3048)))
   )
   (fp_line (start -3.429 -1.397) (end -3.429 5.207) (layer F.SilkS) (width 0.381))
