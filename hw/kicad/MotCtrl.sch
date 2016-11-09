@@ -78,6 +78,7 @@ LIBS:Zilog
 LIBS:drv8301
 LIBS:wslp2726
 LIBS:test
+LIBS:az1117c
 LIBS:MotCtrl-cache
 EELAYER 25 0
 EELAYER END
