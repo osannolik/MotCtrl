@@ -3,4 +3,5 @@
   (lib (name SON_8_5x6)(type KiCad)(uri "$(KIPRJMOD)/footprints/SON_8_5x6.pretty")(options "")(descr ""))
   (lib (name WSLP2726)(type KiCad)(uri "$(KIPRJMOD)/footprints/WSLP2726.pretty")(options "")(descr ""))
   (lib (name TSSOP-56-PP.pretty)(type KiCad)(uri "$(KIPRJMOD)/footprints/TSSOP-56-PP.pretty")(options "")(descr ""))
+  (lib (name MO-299A)(type KiCad)(uri "$(KIPRJMOD)/footprints/MO-299A.pretty")(options "")(descr ""))
 )
