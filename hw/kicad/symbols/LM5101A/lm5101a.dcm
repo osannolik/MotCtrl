@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP LM5101A
+D High-Side and Low-Side Gate Drivers
+K MOSFET gate driver 3A
+F http://www.ti.com/lit/ds/symlink/lm5101a.pdf
+$ENDCMP
+#
+#End Doc Library

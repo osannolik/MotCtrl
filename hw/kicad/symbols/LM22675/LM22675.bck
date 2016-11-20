@@ -1,0 +1,8 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP LM22675-ADJ
+D 42V, 1A, Step-Down Voltage Regulator
+F http://www.ti.com/lit/ds/symlink/lm22675.pdf
+$ENDCMP
+#
+#End Doc Library

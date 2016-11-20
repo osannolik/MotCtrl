@@ -1,0 +1,9 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP FDBL0110N60
+D FDBL0110N60 60V 300A 1.1mOhm
+K N-Channel MOSFET
+F https://www.fairchildsemi.com/datasheets/FD/FDBL0110N60.pdf
+$ENDCMP
+#
+#End Doc Library

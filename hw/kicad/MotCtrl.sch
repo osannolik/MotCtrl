@@ -82,12 +82,13 @@ LIBS:az1117c
 LIBS:ina240
 LIBS:FDBL0110N60
 LIBS:lm5101a
+LIBS:LM22675
 LIBS:MotCtrl-cache
 EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
-Sheet 1 3
+Sheet 1 4
 Title ""
 Date ""
 Rev ""
@@ -203,4 +204,10 @@ F 3 "" V 9250 3600 60  0000 C CNN
 $EndComp
 Wire Wire Line
 	6050 4750 6950 4750
+$Sheet
+S 1800 2550 1600 2050
+U 582A5C38
+F0 "Power Supply" 60
+F1 "power_supply.sch" 60
+$EndSheet
 $EndSCHEMATC

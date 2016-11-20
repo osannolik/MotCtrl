@@ -4,4 +4,6 @@
   (lib (name WSLP2726)(type KiCad)(uri "$(KIPRJMOD)/footprints/WSLP2726.pretty")(options "")(descr ""))
   (lib (name TSSOP-56-PP.pretty)(type KiCad)(uri "$(KIPRJMOD)/footprints/TSSOP-56-PP.pretty")(options "")(descr ""))
   (lib (name MO-299A)(type KiCad)(uri "$(KIPRJMOD)/footprints/MO-299A.pretty")(options "")(descr ""))
+  (lib (name WSON-8)(type KiCad)(uri "$(KIPRJMOD)/footprints/WSON-8.pretty")(options "")(descr ""))
+  (lib (name HSOP-8)(type KiCad)(uri "$(KIPRJMOD)/footprints/HSOP-8.pretty")(options "")(descr ""))
 )
