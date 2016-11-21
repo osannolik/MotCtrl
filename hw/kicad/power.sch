@@ -1635,11 +1635,11 @@ Text Notes 6950 4200 0    60   ~ 0
 Gain = 50 V/V
 Text Notes 6950 6200 0    60   ~ 0
 Gain = 50 V/V
-Text Notes 9850 1750 0    60   ~ 0
+Text Notes 9750 1750 0    60   ~ 0
 0.025 V/A
-Text Notes 9850 3750 0    60   ~ 0
+Text Notes 9750 3750 0    60   ~ 0
 0.025 V/A
-Text Notes 9850 5750 0    60   ~ 0
+Text Notes 9750 5750 0    60   ~ 0
 0.025 V/A
 $Comp
 L LM5101A U?
@@ -1685,4 +1685,10 @@ F 3 "" H 7250 5500 60  0001 C CNN
 	1    7250 5650
 	1    0    0    -1  
 $EndComp
+Text Notes 9750 5050 0    60   ~ 0
+G ≈ 3,17/30 V/V
+Text Notes 9750 3050 0    60   ~ 0
+G ≈ 3,17/30 V/V
+Text Notes 9750 1050 0    60   ~ 0
+G ≈ 3,17/30 V/V
 $EndSCHEMATC
