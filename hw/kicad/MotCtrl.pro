@@ -1,4 +1,4 @@
-update=Lördag 19 November 2016 21:35:41
+update=Tisdag 22 November 2016 19:31:27
 version=1
 last_client=kicad
 [pcbnew]
@@ -105,11 +105,10 @@ LibName73=video
 LibName74=Xicor
 LibName75=xilinx
 LibName76=Zilog
-LibName77=symbols/drv8301/drv8301
-LibName78=symbols/WSLP2726/wslp2726
-LibName79=symbols/test-pad/test
-LibName80=symbols/az1117c/az1117c
-LibName81=symbols/ina240/ina240
-LibName82=symbols/FDBL0110N60/FDBL0110N60
-LibName83=symbols/LM5101A/lm5101a
-LibName84=symbols/LM22675/LM22675
+LibName77=symbols/WSLP2726/wslp2726
+LibName78=symbols/test-pad/test
+LibName79=symbols/az1117c/az1117c
+LibName80=symbols/ina240/ina240
+LibName81=symbols/FDBL0110N60/FDBL0110N60
+LibName82=symbols/LM5101A/lm5101a
+LibName83=symbols/LM22675/LM22675

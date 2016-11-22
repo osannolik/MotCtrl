@@ -75,7 +75,6 @@ LIBS:video
 LIBS:Xicor
 LIBS:xilinx
 LIBS:Zilog
-LIBS:drv8301
 LIBS:wslp2726
 LIBS:test
 LIBS:az1117c

@@ -6,4 +6,5 @@
   (lib (name MO-299A)(type KiCad)(uri "$(KIPRJMOD)/footprints/MO-299A.pretty")(options "")(descr ""))
   (lib (name WSON-8)(type KiCad)(uri "$(KIPRJMOD)/footprints/WSON-8.pretty")(options "")(descr ""))
   (lib (name HSOP-8)(type KiCad)(uri "$(KIPRJMOD)/footprints/HSOP-8.pretty")(options "")(descr ""))
+  (lib (name SOD-128)(type KiCad)(uri "$(KIPRJMOD)/footprints/SOD-128.pretty")(options "")(descr ""))
 )
