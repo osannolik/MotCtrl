@@ -1,4 +1,4 @@
-update=Tisdag 22 November 2016 19:31:27
+update=Lördag 26 November 2016 20:59:54
 version=1
 last_client=kicad
 [pcbnew]
@@ -27,7 +27,7 @@ NetIExt=net
 version=1
 [eeschema]
 version=1
-LibDir=symbols/stm32-kicad-lib;symbols/drv8301;symbols;symbols/WSLP2726;symbols/test-pad;symbols/ina240;symbols/az1117c;symbols/FDBL0110N60;symbols/LM5101A;symbols/LM22675
+LibDir=symbols/stm32-kicad-lib;symbols;symbols/WSLP2726;symbols/test-pad;symbols/ina240;symbols/az1117c;symbols/FDBL0110N60;symbols/LM5101A;symbols/LM22675;symbols/electromechanical
 [eeschema/libraries]
 LibName1=74xgxx
 LibName2=74xx
@@ -112,3 +112,4 @@ LibName80=symbols/ina240/ina240
 LibName81=symbols/FDBL0110N60/FDBL0110N60
 LibName82=symbols/LM5101A/lm5101a
 LibName83=symbols/LM22675/LM22675
+LibName84=symbols/electromechanical/electromechanical

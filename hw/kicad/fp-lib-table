@@ -1,10 +1,10 @@
 (fp_lib_table
   (lib (name footprints)(type KiCad)(uri "$(KIPRJMOD)/footprints")(options "")(descr ""))
-  (lib (name SON_8_5x6)(type KiCad)(uri "$(KIPRJMOD)/footprints/SON_8_5x6.pretty")(options "")(descr ""))
   (lib (name WSLP2726)(type KiCad)(uri "$(KIPRJMOD)/footprints/WSLP2726.pretty")(options "")(descr ""))
-  (lib (name TSSOP-56-PP.pretty)(type KiCad)(uri "$(KIPRJMOD)/footprints/TSSOP-56-PP.pretty")(options "")(descr ""))
   (lib (name MO-299A)(type KiCad)(uri "$(KIPRJMOD)/footprints/MO-299A.pretty")(options "")(descr ""))
   (lib (name WSON-8)(type KiCad)(uri "$(KIPRJMOD)/footprints/WSON-8.pretty")(options "")(descr ""))
   (lib (name HSOP-8)(type KiCad)(uri "$(KIPRJMOD)/footprints/HSOP-8.pretty")(options "")(descr ""))
   (lib (name SOD-128)(type KiCad)(uri "$(KIPRJMOD)/footprints/SOD-128.pretty")(options "")(descr ""))
+  (lib (name electromechanical)(type KiCad)(uri "$(KIPRJMOD)/footprints/electromechanical.pretty")(options "")(descr ""))
+  (lib (name SRN8040TA)(type KiCad)(uri "$(KIPRJMOD)/footprints/SRN8040TA.pretty")(options "")(descr ""))
 )
