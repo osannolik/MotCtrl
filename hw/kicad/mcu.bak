@@ -1293,8 +1293,6 @@ Text Label 2300 3800 2    60   ~ 0
 BAT_SENSE
 Text Label 3900 2900 0    60   ~ 0
 PPM
-Text Label 8550 5450 0    60   ~ 0
-I2C2SDA_RX
 Text Label 3900 3500 0    60   ~ 0
 EXT_NSS_CANRX
 Text Label 3900 3600 0    60   ~ 0
