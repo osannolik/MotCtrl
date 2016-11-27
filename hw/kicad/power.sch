@@ -193,10 +193,6 @@ F 3 "" H 7250 1500 60  0001 C CNN
 	1    7250 1650
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	7100 1100 7150 1050
-Wire Wire Line
-	7350 1050 7400 1100
 Text HLabel 1350 1350 0    60   Input ~ 0
 PWM_H_A
 $Comp
@@ -1691,4 +1687,8 @@ Text Notes 9750 3050 0    60   ~ 0
 G ≈ 3,17/30 V/V
 Text Notes 9750 1050 0    60   ~ 0
 G ≈ 3,17/30 V/V
+Wire Wire Line
+	7100 1100 7150 1050
+Wire Wire Line
+	7350 1050 7400 1100
 $EndSCHEMATC
