@@ -1,4 +1,5 @@
 EESchema Schematic File Version 2
+LIBS:MotCtrl-rescue
 LIBS:74xgxx
 LIBS:74xx
 LIBS:ac-dc
