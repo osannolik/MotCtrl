@@ -156,12 +156,12 @@ U 1 1 581DC4BA
 P 7250 800
 AR Path="/581DC4BA" Ref="R26"  Part="1" 
 AR Path="/58153909/581DC4BA" Ref="R26"  Part="1" 
-F 0 "R26" V 7100 550 50  0000 C CNN
+F 0 "R26" V 7100 1050 50  0000 C CNN
 F 1 "WSLP2726 / 0.5 mOhm" V 7400 800 50  0000 C CNN
 F 2 "WSLP2726:WSLP2726" H 7250 800 60  0001 C CNN
 F 3 "" H 7250 800 60  0000 C CNN
 	1    7250 800 
-	0    -1   -1   0   
+	0    1    -1   0   
 $EndComp
 $Comp
 L GND #PWR037
@@ -410,12 +410,12 @@ U 1 1 5827256F
 P 7250 2800
 AR Path="/5827256F" Ref="R27"  Part="1" 
 AR Path="/58153909/5827256F" Ref="R27"  Part="1" 
-F 0 "R27" V 7100 2550 50  0000 C CNN
+F 0 "R27" V 7100 3050 50  0000 C CNN
 F 1 "WSLP2726 / 0.5 mOhm" V 7400 2800 50  0000 C CNN
 F 2 "WSLP2726:WSLP2726" H 7250 2800 60  0001 C CNN
 F 3 "" H 7250 2800 60  0000 C CNN
 	1    7250 2800
-	0    -1   -1   0   
+	0    1    -1   0   
 $EndComp
 Text HLabel 9750 2800 2    60   Output ~ 0
 MOT_PH_B
@@ -610,12 +610,12 @@ U 1 1 5827284D
 P 7250 4800
 AR Path="/5827284D" Ref="R28"  Part="1" 
 AR Path="/58153909/5827284D" Ref="R28"  Part="1" 
-F 0 "R28" V 7100 4550 50  0000 C CNN
+F 0 "R28" V 7100 5050 50  0000 C CNN
 F 1 "WSLP2726 / 0.5 mOhm" V 7400 4800 50  0000 C CNN
 F 2 "WSLP2726:WSLP2726" H 7250 4800 60  0001 C CNN
 F 3 "" H 7250 4800 60  0000 C CNN
 	1    7250 4800
-	0    -1   -1   0   
+	0    1    -1   0   
 $EndComp
 Text HLabel 9750 4800 2    60   Output ~ 0
 MOT_PH_C
@@ -1566,11 +1566,9 @@ Wire Wire Line
 Wire Wire Line
 	5350 2800 7000 2800
 Wire Wire Line
-	5350 800  7000 800 
-Wire Wire Line
 	5350 4800 7000 4800
 Wire Wire Line
-	9750 800  7500 800 
+	7500 800  9750 800 
 Wire Wire Line
 	8700 900  8550 900 
 Wire Wire Line
@@ -1584,7 +1582,7 @@ Wire Wire Line
 	8550 2900 8550 2800
 Connection ~ 8550 2800
 Wire Wire Line
-	9750 4800 7500 4800
+	7500 4800 9750 4800
 Wire Wire Line
 	8700 4900 8550 4900
 Wire Wire Line
@@ -1700,6 +1698,8 @@ Text Notes 9750 3050 0    60   ~ 0
 G ≈ 3,17/30 V/V
 Text Notes 9750 1050 0    60   ~ 0
 G ≈ 3,17/30 V/V
+Wire Wire Line
+	5350 800  7000 800 
 Wire Wire Line
 	7100 1100 7150 1050
 Wire Wire Line
