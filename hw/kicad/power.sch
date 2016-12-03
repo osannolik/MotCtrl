@@ -1704,4 +1704,28 @@ Wire Wire Line
 	7100 1100 7150 1050
 Wire Wire Line
 	7350 1050 7400 1100
+Text Label 4250 1600 0    60   ~ 0
+PH_A
+Text Label 4250 4100 0    60   ~ 0
+PH_B
+Text Label 4250 6600 0    60   ~ 0
+PH_C
+Text Label 9750 800  2    60   ~ 0
+MOT_PH_A
+Text Label 9750 2800 2    60   ~ 0
+MOT_PH_B
+Text Label 9750 4800 2    60   ~ 0
+MOT_PH_C
+Text Label 9750 1600 2    60   ~ 0
+I_SENSE_A
+Text Label 9750 3600 2    60   ~ 0
+I_SENSE_B
+Text Label 9750 5600 2    60   ~ 0
+I_SENSE_C
+Text Label 9750 900  2    60   ~ 0
+V_EMF_SENSE_A
+Text Label 9750 2900 2    60   ~ 0
+V_EMF_SENSE_B
+Text Label 9750 4900 2    60   ~ 0
+V_EMF_SENSE_C
 $EndSCHEMATC
