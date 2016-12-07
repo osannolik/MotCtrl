@@ -171,7 +171,7 @@ U 1 1 581F3C20
 P 9250 3250
 F 0 "TP1" V 9200 3200 40  0000 C CNN
 F 1 "Phase A" V 9250 3500 40  0000 C CNN
-F 2 "Wire_Pads:SolderWirePad_single_SMD_5x10mm" V 9250 3400 60  0001 C CNN
+F 2 "pads:SolderWirePad_single_SMD_5x5mm" V 9250 3400 60  0001 C CNN
 F 3 "" V 9250 3400 60  0000 C CNN
 	1    9250 3250
 	0    1    1    0   
@@ -188,7 +188,7 @@ U 1 1 581F8700
 P 9250 3350
 F 0 "TP2" V 9200 3300 40  0000 C CNN
 F 1 "Phase B" V 9250 3600 40  0000 C CNN
-F 2 "Wire_Pads:SolderWirePad_single_SMD_5x10mm" V 9250 3500 60  0001 C CNN
+F 2 "pads:SolderWirePad_single_SMD_5x5mm" V 9250 3500 60  0001 C CNN
 F 3 "" V 9250 3500 60  0000 C CNN
 	1    9250 3350
 	0    1    1    0   
@@ -199,7 +199,7 @@ U 1 1 581F8822
 P 9250 3450
 F 0 "TP3" V 9200 3400 40  0000 C CNN
 F 1 "Phase C" V 9250 3700 40  0000 C CNN
-F 2 "Wire_Pads:SolderWirePad_single_SMD_5x10mm" V 9250 3600 60  0001 C CNN
+F 2 "pads:SolderWirePad_single_SMD_5x5mm" V 9250 3600 60  0001 C CNN
 F 3 "" V 9250 3600 60  0000 C CNN
 	1    9250 3450
 	0    1    1    0   

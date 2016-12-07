@@ -7,4 +7,5 @@
   (lib (name SOD-128)(type KiCad)(uri "$(KIPRJMOD)/footprints/SOD-128.pretty")(options "")(descr ""))
   (lib (name electromechanical)(type KiCad)(uri "$(KIPRJMOD)/footprints/electromechanical.pretty")(options "")(descr ""))
   (lib (name SRN8040TA)(type KiCad)(uri "$(KIPRJMOD)/footprints/SRN8040TA.pretty")(options "")(descr ""))
+  (lib (name pads)(type KiCad)(uri "$(KIPRJMOD)/footprints/pads.pretty")(options "")(descr ""))
 )

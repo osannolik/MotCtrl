@@ -761,7 +761,7 @@ U 1 1 58361977
 P 1650 1750
 F 0 "TP4" V 1600 1700 40  0000 C CNN
 F 1 "Bat+" V 1650 2000 40  0000 C CNN
-F 2 "Wire_Pads:SolderWirePad_single_SMD_5x10mm" V 1650 1900 60  0001 C CNN
+F 2 "pads:SolderWirePad_single_SMD_5x5mm" V 1650 1900 60  0001 C CNN
 F 3 "" V 1650 1900 60  0000 C CNN
 	1    1650 1750
 	0    -1   -1   0   
@@ -772,7 +772,7 @@ U 1 1 5836197E
 P 1650 2350
 F 0 "TP5" V 1600 2300 40  0000 C CNN
 F 1 "Bat-" V 1650 2600 40  0000 C CNN
-F 2 "Wire_Pads:SolderWirePad_single_SMD_5x10mm" V 1650 2500 60  0001 C CNN
+F 2 "pads:SolderWirePad_single_SMD_5x5mm" V 1650 2500 60  0001 C CNN
 F 3 "" V 1650 2500 60  0000 C CNN
 	1    1650 2350
 	0    -1   -1   0   
