@@ -9,4 +9,5 @@
   (lib (name SRN8040TA)(type KiCad)(uri "$(KIPRJMOD)/footprints/SRN8040TA.pretty")(options "")(descr ""))
   (lib (name pads)(type KiCad)(uri "$(KIPRJMOD)/footprints/pads.pretty")(options "")(descr ""))
   (lib (name Capacitors_angled)(type KiCad)(uri "$(KIPRJMOD)/footprints/Capacitors_angled.pretty")(options "")(descr ""))
+  (lib (name JST_ZH)(type KiCad)(uri "$(KIPRJMOD)/footprints/JST_ZH.pretty")(options "")(descr ""))
 )
