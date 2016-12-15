@@ -3,9 +3,9 @@
   (general
     (links 358)
     (no_connects 0)
-    (area 125.654999 107.112999 202.513001 151.713001)
+    (area 119.801857 105.642 216.320572 159.164001)
     (thickness 1.6)
-    (drawings 7)
+    (drawings 8)
     (tracks 2765)
     (zones 0)
     (modules 145)
@@ -39,7 +39,7 @@
   )
 
   (setup
-    (last_trace_width 0.6)
+    (last_trace_width 0.25)
     (user_trace_width 0.2)
     (user_trace_width 0.25)
     (user_trace_width 0.3)
@@ -76,7 +76,7 @@
     (pad_drill 0)
     (pad_to_mask_clearance 0.2)
     (aux_axis_origin 0 0)
-    (visible_elements FFFCFBFF)
+    (visible_elements FFFCFFFF)
     (pcbplotparams
       (layerselection 0x00030_80000001)
       (usegerberextensions false)
@@ -4709,6 +4709,18 @@
       (net 23 +5V))
   )
 
+  (dimension 76.708 (width 0.3) (layer Cmts.User)
+    (gr_text 76,708mm (at 164.084 157.814) (layer Cmts.User)
+      (effects (font (size 1.5 1.5) (thickness 0.3)))
+    )
+    (feature1 (pts (xy 202.438 152.146) (xy 202.438 159.164)))
+    (feature2 (pts (xy 125.73 152.146) (xy 125.73 159.164)))
+    (crossbar (pts (xy 125.73 156.464) (xy 202.438 156.464)))
+    (arrow1a (pts (xy 202.438 156.464) (xy 201.311496 157.050421)))
+    (arrow1b (pts (xy 202.438 156.464) (xy 201.311496 155.877579)))
+    (arrow2a (pts (xy 125.73 156.464) (xy 126.856504 157.050421)))
+    (arrow2b (pts (xy 125.73 156.464) (xy 126.856504 155.877579)))
+  )
   (gr_line (start 202.438 151.638) (end 125.73 151.638) (angle 90) (layer Edge.Cuts) (width 0.15))
   (gr_line (start 125.73 107.188) (end 202.438 107.188) (angle 90) (layer Edge.Cuts) (width 0.15))
   (gr_line (start 125.73 107.442) (end 125.73 107.188) (angle 90) (layer Edge.Cuts) (width 0.15))

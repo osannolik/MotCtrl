@@ -456,7 +456,7 @@ F 3 "" H 2950 6900 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	8350 2300 8200 2300
+	8650 2300 8200 2300
 Wire Wire Line
 	9000 6000 9000 5950
 Wire Wire Line
@@ -533,7 +533,7 @@ Connection ~ 8550 4400
 Wire Wire Line
 	8900 2350 8900 2250
 Wire Wire Line
-	8350 2350 8350 2300
+	8650 2350 8650 2300
 Wire Wire Line
 	8900 1900 8200 1900
 Wire Wire Line
@@ -594,9 +594,9 @@ Wire Wire Line
 Wire Wire Line
 	4700 1400 2950 1400
 Wire Wire Line
-	2950 1400 2950 2000
+	2950 2000 2950 1400
 Wire Wire Line
-	2950 2000 1800 2000
+	1800 2000 2950 2000
 Wire Wire Line
 	3050 2700 3050 1500
 Wire Wire Line
@@ -873,12 +873,12 @@ $EndComp
 $Comp
 L GND #PWR020
 U 1 1 58277FF6
-P 8350 2350
-F 0 "#PWR020" H 8350 2100 50  0001 C CNN
-F 1 "GND" H 8350 2200 50  0000 C CNN
-F 2 "" H 8350 2350 60  0000 C CNN
-F 3 "" H 8350 2350 60  0000 C CNN
-	1    8350 2350
+P 8650 2350
+F 0 "#PWR020" H 8650 2100 50  0001 C CNN
+F 1 "GND" H 8650 2200 50  0000 C CNN
+F 2 "" H 8650 2350 60  0000 C CNN
+F 3 "" H 8650 2350 60  0000 C CNN
+	1    8650 2350
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -970,7 +970,7 @@ Text HLabel 3900 4300 0    60   Input ~ 0
 I_SENS_C
 Text Notes 950  3800 0    39   ~ 0
 G ≈ 3.3/40 V/V
-Text HLabel 3300 3350 0    60   Output ~ 0
+Text HLabel 3900 1600 0    60   Output ~ 0
 GATE_PWR_EN
 Wire Wire Line
 	3900 2900 4700 2900
@@ -1451,4 +1451,18 @@ Wire Wire Line
 	10400 1150 10400 1200
 Wire Wire Line
 	10400 1200 10450 1200
+Wire Wire Line
+	3900 1600 4700 1600
+Text Label 3900 5000 0    60   ~ 0
+LED_R
+Wire Wire Line
+	3900 3400 4700 3400
+Wire Wire Line
+	3900 5000 4700 5000
+Text Label 3900 3400 0    60   ~ 0
+LED_G
+Text Label 8500 2400 2    60   ~ 0
+BTN
+Wire Wire Line
+	8500 2400 8200 2400
 $EndSCHEMATC
