@@ -184,7 +184,7 @@ F 3 "" H 7250 1500 60  0001 C CNN
 	1    7250 1650
 	1    0    0    -1  
 $EndComp
-Text HLabel 1350 1350 0    60   Input ~ 0
+Text HLabel 1050 1350 0    60   Input ~ 0
 PWM_H_A
 $Comp
 L GND #PWR63
@@ -808,7 +808,7 @@ F 3 "" H 1800 1100 60  0000 C CNN
 	1    1800 1100
 	1    0    0    -1  
 $EndComp
-Text HLabel 1350 1450 0    60   Input ~ 0
+Text HLabel 1050 1450 0    60   Input ~ 0
 PWM_L_A
 $Comp
 L C C21
@@ -887,7 +887,7 @@ F 3 "" H 4250 5050 60  0000 C CNN
 	1    4250 5050
 	1    0    0    -1  
 $EndComp
-Text HLabel 1350 3850 0    60   Input ~ 0
+Text HLabel 1050 3850 0    60   Input ~ 0
 PWM_H_B
 $Comp
 L R R22
@@ -988,7 +988,7 @@ F 3 "" H 1800 3600 60  0000 C CNN
 	1    1800 3600
 	1    0    0    -1  
 $EndComp
-Text HLabel 1350 3950 0    60   Input ~ 0
+Text HLabel 1050 3950 0    60   Input ~ 0
 PWM_L_B
 $Comp
 L GND #PWR36
@@ -1056,7 +1056,7 @@ F 3 "" H 4250 7550 60  0000 C CNN
 	1    4250 7550
 	1    0    0    -1  
 $EndComp
-Text HLabel 1350 6350 0    60   Input ~ 0
+Text HLabel 1100 6350 0    60   Input ~ 0
 PWM_H_C
 $Comp
 L R R24
@@ -1157,7 +1157,7 @@ F 3 "" H 1800 6100 60  0000 C CNN
 	1    1800 6100
 	1    0    0    -1  
 $EndComp
-Text HLabel 1350 6450 0    60   Input ~ 0
+Text HLabel 1100 6450 0    60   Input ~ 0
 PWM_L_C
 $Comp
 L GND #PWR37
@@ -1526,9 +1526,9 @@ Wire Wire Line
 	1550 750  2050 750 
 Connection ~ 2050 750 
 Wire Wire Line
-	1350 1350 2100 1350
+	1050 1350 2100 1350
 Wire Wire Line
-	2100 1450 1350 1450
+	2100 1450 1050 1450
 Wire Wire Line
 	1550 800  1550 750 
 Connection ~ 1800 750 
@@ -1595,9 +1595,9 @@ Wire Wire Line
 	1550 3250 2050 3250
 Connection ~ 2050 3250
 Wire Wire Line
-	1350 3850 2100 3850
+	1050 3850 2100 3850
 Wire Wire Line
-	2100 3950 1350 3950
+	2100 3950 1050 3950
 Wire Wire Line
 	1550 3300 1550 3250
 Connection ~ 1800 3250
@@ -1664,9 +1664,9 @@ Wire Wire Line
 	1550 5750 2050 5750
 Connection ~ 2050 5750
 Wire Wire Line
-	1350 6350 2100 6350
+	1100 6350 2100 6350
 Wire Wire Line
-	2100 6450 1350 6450
+	2100 6450 1100 6450
 Wire Wire Line
 	1550 5800 1550 5750
 Connection ~ 1800 5750
@@ -1709,8 +1709,6 @@ Wire Wire Line
 Wire Wire Line
 	7500 2800 9750 2800
 Wire Wire Line
-	7500 4800 9750 4800
-Wire Wire Line
 	5350 800  7000 800 
 Wire Wire Line
 	5350 2800 7000 2800
@@ -1728,4 +1726,90 @@ Wire Wire Line
 	7100 5100 7150 5050
 Wire Wire Line
 	7350 5050 7400 5100
+Wire Wire Line
+	1300 6250 1300 6450
+Connection ~ 1300 6450
+Wire Wire Line
+	1150 6250 1150 6350
+Connection ~ 1150 6350
+Wire Wire Line
+	1150 3750 1150 3850
+Connection ~ 1150 3850
+Wire Wire Line
+	1300 3750 1300 3950
+Connection ~ 1300 3950
+$Comp
+L TESTPAD PHA1
+U 1 1 585736CB
+P 1150 1200
+F 0 "PHA1" H 1150 1350 40  0000 C CNN
+F 1 "PHA" V 1200 1200 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 1150 1350 60  0001 C CNN
+F 3 "" V 1150 1350 60  0000 C CNN
+	1    1150 1200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	1150 1250 1150 1350
+Connection ~ 1150 1350
+Wire Wire Line
+	1300 1250 1300 1450
+Connection ~ 1300 1450
+$Comp
+L TESTPAD TP17
+U 1 1 58574284
+P 1300 1200
+F 0 "TP17" H 1300 1350 40  0000 C CNN
+F 1 "PLA" V 1350 1200 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 1300 1350 60  0001 C CNN
+F 3 "" V 1300 1350 60  0000 C CNN
+	1    1300 1200
+	1    0    0    -1  
+$EndComp
+$Comp
+L TESTPAD TP15
+U 1 1 58574424
+P 1150 3700
+F 0 "TP15" H 1150 3850 40  0000 C CNN
+F 1 "PHB" V 1200 3700 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 1150 3850 60  0001 C CNN
+F 3 "" V 1150 3850 60  0000 C CNN
+	1    1150 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L TESTPAD TP18
+U 1 1 58574A72
+P 1300 3700
+F 0 "TP18" H 1300 3850 40  0000 C CNN
+F 1 "PLB" V 1350 3700 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 1300 3850 60  0001 C CNN
+F 3 "" V 1300 3850 60  0000 C CNN
+	1    1300 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L TESTPAD TP16
+U 1 1 58574F1D
+P 1150 6200
+F 0 "TP16" H 1150 6350 40  0000 C CNN
+F 1 "PHC" V 1200 6200 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 1150 6350 60  0001 C CNN
+F 3 "" V 1150 6350 60  0000 C CNN
+	1    1150 6200
+	1    0    0    -1  
+$EndComp
+$Comp
+L TESTPAD TP19
+U 1 1 58575399
+P 1300 6200
+F 0 "TP19" H 1300 6350 40  0000 C CNN
+F 1 "PLC" V 1350 6200 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 1300 6350 60  0001 C CNN
+F 3 "" V 1300 6350 60  0000 C CNN
+	1    1300 6200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7500 4800 9750 4800
 $EndSCHEMATC

@@ -471,7 +471,7 @@ F 3 "" H 8850 1950 30  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	8850 1750 8850 1800
+	8850 1700 8850 1800
 Wire Wire Line
 	8850 2150 8850 2100
 $Comp
@@ -659,7 +659,7 @@ F 3 "" H 7650 3400 60  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	5900 3600 7650 3600
+	5900 3600 7850 3600
 $Comp
 L D_Schottky D9
 U 1 1 58311EF3
@@ -865,4 +865,29 @@ F 4 "1%" V 6400 1550 60  0000 C CNN " Tolerance"
 	1    6450 1750
 	0    1    1    0   
 $EndComp
+$Comp
+L TESTPAD TP21
+U 1 1 5856EA7E
+P 8850 1650
+F 0 "TP21" H 8850 1800 40  0000 C CNN
+F 1 "12V" H 9000 1700 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 8850 1800 60  0001 C CNN
+F 3 "" V 8850 1800 60  0000 C CNN
+	1    8850 1650
+	1    0    0    -1  
+$EndComp
+Connection ~ 8850 1750
+$Comp
+L TESTPAD TP20
+U 1 1 5856EC9B
+P 7850 3500
+F 0 "TP20" H 7850 3650 40  0000 C CNN
+F 1 "5V" H 8000 3550 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 7850 3650 60  0001 C CNN
+F 3 "" V 7850 3650 60  0000 C CNN
+	1    7850 3500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	7850 3600 7850 3550
 $EndSCHEMATC

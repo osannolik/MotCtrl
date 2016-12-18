@@ -212,9 +212,9 @@ Text HLabel 3900 2800 0    60   Output ~ 0
 PWM_L_C
 Text HLabel 9300 4400 2    60   Output ~ 0
 I_SENS_V_REF
-Text HLabel 3900 4100 0    60   Input ~ 0
+Text HLabel 3000 4100 0    60   Input ~ 0
 I_SENS_A
-Text HLabel 3900 4200 0    60   Input ~ 0
+Text HLabel 3000 4200 0    60   Input ~ 0
 I_SENS_B
 $Comp
 L C C9
@@ -590,11 +590,11 @@ Wire Wire Line
 Wire Wire Line
 	2050 950  2050 1000
 Wire Wire Line
-	4700 1400 2950 1400
+	2950 1400 4700 1400
 Wire Wire Line
-	2950 1400 2950 2000
+	2950 2000 2950 1400
 Wire Wire Line
-	2950 2000 1800 2000
+	1800 2000 2950 2000
 Wire Wire Line
 	3050 2700 3050 1500
 Wire Wire Line
@@ -959,12 +959,12 @@ $EndComp
 Wire Wire Line
 	1200 3800 1200 3950
 Wire Wire Line
-	900  3800 2300 3800
+	600  3800 2300 3800
 Connection ~ 1200 3800
 Wire Wire Line
 	900  3650 900  3950
 Connection ~ 900  3800
-Text HLabel 3900 4300 0    60   Input ~ 0
+Text HLabel 3000 4300 0    60   Input ~ 0
 I_SENS_C
 Text Notes 950  3800 0    39   ~ 0
 G ≈ 3.3/40 V/V
@@ -1120,11 +1120,11 @@ Wire Wire Line
 Wire Wire Line
 	3900 2800 4700 2800
 Wire Wire Line
-	3900 4100 4700 4100
+	3000 4100 4700 4100
 Wire Wire Line
-	3900 4200 4700 4200
+	3000 4200 4700 4200
 Wire Wire Line
-	3900 4300 4700 4300
+	3000 4300 4700 4300
 Wire Wire Line
 	3900 4500 4700 4500
 Text Label 1600 5400 2    60   ~ 0
@@ -1469,7 +1469,7 @@ U 1 1 58567422
 P 8550 4100
 F 0 "R43" H 8700 4100 50  0000 C CNN
 F 1 "0R" V 8550 4100 50  0000 C CNN
-F 2 "Resistors_SMD:R_0603" V 8480 4100 30  0001 C CNN
+F 2 "Resistors_SMD:R_0402" V 8480 4100 30  0001 C CNN
 F 3 "" H 8550 4100 30  0000 C CNN
 	1    8550 4100
 	1    0    0    -1  
@@ -1478,4 +1478,115 @@ Wire Wire Line
 	8550 3800 8550 3950
 Wire Wire Line
 	8550 4250 8550 4450
+$Comp
+L TESTPAD TP13
+U 1 1 5856F49A
+P 8900 4300
+F 0 "TP13" H 8900 4450 40  0000 C CNN
+F 1 "VREF" H 9050 4350 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 8900 4450 60  0001 C CNN
+F 3 "" V 8900 4450 60  0000 C CNN
+	1    8900 4300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8900 4400 8900 4350
+Connection ~ 8900 4400
+$Comp
+L TESTPAD TP6
+U 1 1 5856FEE9
+P 600 3700
+F 0 "TP6" H 600 3850 40  0000 C CNN
+F 1 "BAT_SENSE" H 750 3700 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 600 3850 60  0001 C CNN
+F 3 "" V 600 3850 60  0000 C CNN
+	1    600  3700
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	600  3750 600  3800
+$Comp
+L TESTPAD TP7
+U 1 1 58578D34
+P 3100 1150
+F 0 "TP7" H 3100 1300 40  0000 C CNN
+F 1 "VA" H 3150 1150 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 3100 1300 60  0001 C CNN
+F 3 "" V 3100 1300 60  0000 C CNN
+	1    3100 1150
+	1    0    0    -1  
+$EndComp
+$Comp
+L TESTPAD TP9
+U 1 1 5857940A
+P 3250 1150
+F 0 "TP9" H 3250 1300 40  0000 C CNN
+F 1 "VB" H 3300 1150 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 3250 1300 60  0001 C CNN
+F 3 "" V 3250 1300 60  0000 C CNN
+	1    3250 1150
+	1    0    0    -1  
+$EndComp
+$Comp
+L TESTPAD TP11
+U 1 1 58579542
+P 3400 1150
+F 0 "TP11" H 3400 1300 40  0000 C CNN
+F 1 "VC" H 3450 1150 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 3400 1300 60  0001 C CNN
+F 3 "" V 3400 1300 60  0000 C CNN
+	1    3400 1150
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3100 1200 3100 1300
+Connection ~ 3100 1300
+Wire Wire Line
+	3250 1200 3250 1400
+Connection ~ 3250 1400
+Wire Wire Line
+	3400 1200 3400 1500
+Connection ~ 3400 1500
+$Comp
+L TESTPAD TP8
+U 1 1 5857A2D6
+P 3100 3950
+F 0 "TP8" H 3100 4100 40  0000 C CNN
+F 1 "IA" H 3150 3950 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 3100 4100 60  0001 C CNN
+F 3 "" V 3100 4100 60  0000 C CNN
+	1    3100 3950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3100 4000 3100 4100
+Connection ~ 3100 4100
+$Comp
+L TESTPAD TP10
+U 1 1 5857A80C
+P 3250 3950
+F 0 "TP10" H 3250 4100 40  0000 C CNN
+F 1 "IB" H 3300 3950 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 3250 4100 60  0001 C CNN
+F 3 "" V 3250 4100 60  0000 C CNN
+	1    3250 3950
+	1    0    0    -1  
+$EndComp
+$Comp
+L TESTPAD TP12
+U 1 1 5857A8B6
+P 3400 3950
+F 0 "TP12" H 3400 4100 40  0000 C CNN
+F 1 "IC" H 3450 3950 40  0000 C CNN
+F 2 "Measurement_Points:Measurement_Point_Round-SMD-Pad_Small" V 3400 4100 60  0001 C CNN
+F 3 "" V 3400 4100 60  0000 C CNN
+	1    3400 3950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	3250 4000 3250 4200
+Connection ~ 3250 4200
+Wire Wire Line
+	3400 4000 3400 4300
+Connection ~ 3400 4300
 $EndSCHEMATC
