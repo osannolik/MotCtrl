@@ -1,4 +1,4 @@
-update=Måndag 28 November 2016 19:05:32
+update=Måndag 19 December 2016 21:29:06
 version=1
 last_client=kicad
 [pcbnew]
@@ -114,3 +114,13 @@ LibName82=symbols/FDBL0110N60/FDBL0110N60
 LibName83=symbols/LM5101A/lm5101a
 LibName84=symbols/LM22675/LM22675
 LibName85=symbols/electromechanical/electromechanical
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=60
