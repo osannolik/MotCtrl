@@ -17,3 +17,5 @@ A small inverter for brushless motors.
 
 <img src="hw/doc/png/PCB_00_RevA.png" width="800">
 <img src="hw/doc/png/PCB_00_RevA_3D.png" width="800">
+<img src="hw/doc/png/PCB_00_RevA_Front.png" width="800">
+<img src="hw/doc/png/PCB_00_RevA_Back.png" width="800">
