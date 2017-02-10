@@ -1,0 +1,101 @@
+/*
+ * debug.h
+ *
+ *  Created on: 23 aug 2015
+ *      Author: osannolik
+ */
+
+#ifndef DEBUG_H_
+#define DEBUG_H_
+
+#include "stm32f4xx_hal.h"
+
+#define DBG_USE_LED      (1)
+#define DBG_USE_PAD1     (1)
+#define DBG_USE_PAD2     (1)
+#define DBG_USE_PAD3     (1)
+#define DBG_USE_PAD4     (1)
+#define DBG_USE_PAD5     (0)
+
+#if DBG_USE_LED
+#define DBG_LED_PIN      GPIO_PIN_10
+#define DBG_LED_PORT     GPIOB
+#define DBG_LED_CLK_EN   __HAL_RCC_GPIOB_CLK_ENABLE()
+#define DBG_LED_SET      (DBG_LED_PORT->BSRR = DBG_LED_PIN)
+#define DBG_LED_RESET    (DBG_LED_PORT->BSRR = (DBG_LED_PIN<<16))
+#define DBG_LED_TOGGLE   (DBG_LED_PORT->ODR ^= DBG_LED_PIN)
+#else
+#define DBG_LED_SET
+#define DBG_LED_RESET
+#define DBG_LED_TOGGLE
+#endif /* DBG_USE_LED */
+
+#if DBG_USE_PAD1
+#define DBG_PAD1_PIN     GPIO_PIN_12
+#define DBG_PAD1_PORT    GPIOB
+#define DBG_PAD1_CLK_EN  __HAL_RCC_GPIOB_CLK_ENABLE()
+#define DBG_PAD1_SET     (DBG_PAD1_PORT->BSRR = DBG_PAD1_PIN)
+#define DBG_PAD1_RESET   (DBG_PAD1_PORT->BSRR = (DBG_PAD1_PIN<<16))
+#define DBG_PAD1_TOGGLE  (DBG_PAD1_PORT->ODR ^= DBG_PAD1_PIN)
+#else
+#define DBG_PAD1_SET
+#define DBG_PAD1_RESET
+#define DBG_PAD1_TOGGLE
+#endif /* DBG_USE_PAD1 */
+
+#if DBG_USE_PAD2
+#define DBG_PAD2_PIN     GPIO_PIN_13
+#define DBG_PAD2_PORT    GPIOB
+#define DBG_PAD2_CLK_EN  __HAL_RCC_GPIOB_CLK_ENABLE()
+#define DBG_PAD2_SET     (DBG_PAD2_PORT->BSRR = DBG_PAD2_PIN)
+#define DBG_PAD2_RESET   (DBG_PAD2_PORT->BSRR = (DBG_PAD2_PIN<<16))
+#define DBG_PAD2_TOGGLE  (DBG_PAD2_PORT->ODR ^= DBG_PAD2_PIN)
+#else
+#define DBG_PAD2_SET
+#define DBG_PAD2_RESET
+#define DBG_PAD2_TOGGLE
+#endif /* DBG_USE_PAD2 */
+
+
+#if DBG_USE_PAD3
+#define DBG_PAD3_PIN     GPIO_PIN_14
+#define DBG_PAD3_PORT    GPIOB
+#define DBG_PAD3_CLK_EN  __HAL_RCC_GPIOB_CLK_ENABLE()
+#define DBG_PAD3_SET     (DBG_PAD3_PORT->BSRR = DBG_PAD3_PIN)
+#define DBG_PAD3_RESET   (DBG_PAD3_PORT->BSRR = (DBG_PAD3_PIN<<16))
+#define DBG_PAD3_TOGGLE  (DBG_PAD3_PORT->ODR ^= DBG_PAD3_PIN)
+#else
+#define DBG_PAD3_SET
+#define DBG_PAD3_RESET
+#define DBG_PAD3_TOGGLE
+#endif /* DBG_USE_PAD3 */
+
+#if DBG_USE_PAD4
+#define DBG_PAD4_PIN     GPIO_PIN_15
+#define DBG_PAD4_PORT    GPIOB
+#define DBG_PAD4_CLK_EN  __HAL_RCC_GPIOB_CLK_ENABLE()
+#define DBG_PAD4_SET     (DBG_PAD4_PORT->BSRR = DBG_PAD4_PIN)
+#define DBG_PAD4_RESET   (DBG_PAD4_PORT->BSRR = (DBG_PAD4_PIN<<16))
+#define DBG_PAD4_TOGGLE  (DBG_PAD4_PORT->ODR ^= DBG_PAD4_PIN)
+#else
+#define DBG_PAD4_SET
+#define DBG_PAD4_RESET
+#define DBG_PAD4_TOGGLE
+#endif /* DBG_USE_PAD4 */
+
+#if DBG_USE_PAD5
+#define DBG_PAD5_PIN     GPIO_PIN_7
+#define DBG_PAD5_PORT    GPIOC
+#define DBG_PAD5_CLK_EN  __HAL_RCC_GPIOC_CLK_ENABLE()
+#define DBG_PAD5_SET     (DBG_PAD5_PORT->BSRR = DBG_PAD5_PIN)
+#define DBG_PAD5_RESET   (DBG_PAD5_PORT->BSRR = (DBG_PAD5_PIN<<16))
+#define DBG_PAD5_TOGGLE  (DBG_PAD5_PORT->ODR ^= DBG_PAD5_PIN)
+#else
+#define DBG_PAD5_SET
+#define DBG_PAD5_RESET
+#define DBG_PAD5_TOGGLE
+#endif /* DBG_USE_PAD5 */
+
+int debug_init(void);
+
+#endif /* DEBUG_H_ */

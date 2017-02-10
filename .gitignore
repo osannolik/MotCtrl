@@ -1,1 +1,9 @@
-*.DS_Store
+!.gitignore
+sw/build/*
+*.pyc
+*.o
+*.d
+.DS_Store
+sw/.cproject
+sw/.project
+sw/.settings/*
