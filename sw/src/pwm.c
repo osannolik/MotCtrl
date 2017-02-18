@@ -87,12 +87,17 @@ int pwm_init(void)
   /* Setup base timer for complementary PWM */
   __HAL_RCC_TIM1_CLK_ENABLE();
 
-  m_pwm_period = HAL_RCC_GetPCLK2Freq()/PWM_FREQUENCY_HZ - 1; /* TIM1 clock source APB2 (2*90 MHz) */
+#if (PWM_EDGE_ALIGNMENT == PWM_CENTER)
+  TIMhandle.Init.CounterMode       = TIM_COUNTERMODE_CENTERALIGNED1;
+  m_pwm_period = HAL_RCC_GetPCLK2Freq()/PWM_FREQUENCY_HZ - 1; /* TIM1 clock source 2*APB2 (2*90 MHz), since APB2 presc != 1 */
+#else
+  TIMhandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
+  m_pwm_period = 2*HAL_RCC_GetPCLK2Freq()/PWM_FREQUENCY_HZ - 1; /* TIM1 clock source 2*APB2 (2*90 MHz), since APB2 presc != 1 */
+#endif
 
   TIMhandle.Instance               = TIM1;
   TIMhandle.Init.Prescaler         = 0;
   TIMhandle.Init.Period            = m_pwm_period;
-  TIMhandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
   TIMhandle.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
   TIMhandle.Init.RepetitionCounter = 0;
 

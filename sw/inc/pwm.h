@@ -34,6 +34,10 @@
 
 #define PWM_FREQUENCY_HZ    (16000u)
 
+#define PWM_EDGE            (0u)
+#define PWM_CENTER          (1u)
+#define PWM_EDGE_ALIGNMENT  PWM_CENTER
+
 #define PWM_BREAK_IRQ_PRIO  (0x00u)
 
 int pwm_init(void);
