@@ -69,8 +69,8 @@ typedef enum {
 #define CALMEAS_DATA_INIT          {0, 0, uart, ACCESS_OFF}
 
 // TODO: Here you can define at what periods each raster should be sent
-#define CALMEAS_RASTER_0_PERIOD    (5)  // Relative to calmeas_handler period
-#define CALMEAS_RASTER_1_PERIOD    (20)
+#define CALMEAS_RASTER_0_PERIOD    (1)  // Relative to calmeas_handler period
+#define CALMEAS_RASTER_1_PERIOD    (10)
 #define CALMEAS_RASTER_2_PERIOD    (200)
 
 #define CALMEAS_RASTERS_NBR        (3)

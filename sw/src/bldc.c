@@ -20,6 +20,9 @@ CALMEAS_SYMBOL(float, m_bldc_set_duty, 0, "");
 #define CALMEAS_MEMSEC_bldc_direction_t     CALMEAS_MEMSEC_uint8_t
 CALMEAS_SYMBOL(bldc_direction_t, m_bldc_direction_req, DIR_NONE, "");
 
+/* Parameters */
+CALMEAS_SYMBOL(uint8_t, p_manual_step, 0, "");
+
 static uint8_t bldc_hall_state_to_step_map[NUMBER_OF_DIRS][POS_NUMBER_OF_HALL_STATES];
 static bldc_cal_state_t cal_state = CAL_NOT_PERFORMED;
 
@@ -154,6 +157,8 @@ void bldc_step(uint32_t period_ms)
 {
   static bldc_direction_t prev_dir = DIR_NONE;
 
+  static uint8_t prev_p_manual_step = 0;
+
   switch (modes_current_mode()) {
 
     case BLDC_HALL_CALIBRATION:
@@ -178,6 +183,21 @@ void bldc_step(uint32_t period_ms)
       prev_dir = m_bldc_direction_req;
 
       pwm_set_duty_perc(ABS(m_bldc_set_duty));
+      break;
+
+    case MANUAL_STEP:
+      board_gate_driver_enable();
+
+      if (p_manual_step != prev_p_manual_step) {
+        commutation_steps_ch1[p_manual_step]();
+        commutation_steps_ch2[p_manual_step]();
+        commutation_steps_ch3[p_manual_step]();
+        pwm_commutation_event();
+      }
+      prev_p_manual_step = p_manual_step;
+
+      pwm_set_duty_perc(ABS(m_bldc_set_duty));
+
       break;
 
     default:

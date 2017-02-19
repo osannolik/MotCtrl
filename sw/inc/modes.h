@@ -13,7 +13,8 @@
 typedef enum {
   INACTIVE = 0u,
   BLDC_HALL_CALIBRATION,
-  RUNNING
+  RUNNING,
+  MANUAL_STEP
 } modes_mode_t;
 
 int modes_init(void);

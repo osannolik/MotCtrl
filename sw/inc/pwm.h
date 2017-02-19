@@ -8,6 +8,8 @@
 #ifndef PWM_H_
 #define PWM_H_
 
+#include "stm32f4xx_hal.h"
+
 #define PWM_GATE_H_A_PIN    GPIO_PIN_8
 #define PWM_GATE_H_A_PORT   GPIOA
 #define PWM_GATE_H_A_CLK_EN __HAL_RCC_GPIOA_CLK_ENABLE()
@@ -36,7 +38,7 @@
 
 #define PWM_EDGE            (0u)
 #define PWM_CENTER          (1u)
-#define PWM_EDGE_ALIGNMENT  PWM_CENTER
+#define PWM_EDGE_ALIGNMENT  PWM_EDGE
 
 #define PWM_BREAK_IRQ_PRIO  (0x00u)
 

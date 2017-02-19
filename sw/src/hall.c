@@ -14,6 +14,7 @@
 CALMEAS_SYMBOL(uint8_t, m_hall1, 0, "");
 CALMEAS_SYMBOL(uint8_t, m_hall2, 0, "");
 CALMEAS_SYMBOL(uint8_t, m_hall3, 0, "");
+CALMEAS_SYMBOL(uint8_t, m_hall_hallstate, 0, "");
 
 int hall_init(void)
 {
@@ -73,6 +74,6 @@ void EXTI9_5_IRQHandler(void)
   } else if(__HAL_GPIO_EXTI_GET_IT(HALL_SENSOR_H3_PIN) != RESET) {
     __HAL_GPIO_EXTI_CLEAR_IT(HALL_SENSOR_H3_PIN);
   }
-
-  bldc_hall_indication(hall_state());
+  m_hall_hallstate = hall_state();
+  bldc_hall_indication(m_hall_hallstate);
 }

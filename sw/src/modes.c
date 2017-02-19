@@ -43,6 +43,27 @@ void modes_step(uint32_t period_ms)
       break;
 
     case RUNNING:
+      if (board_button_pressed()) {
+        delay_ms += period_ms;
+        if (delay_ms >= button_hold_time_ms) {
+          mode = MANUAL_STEP;
+          delay_ms = 0u;
+        }
+      } else {
+        delay_ms = 0u;
+      }
+      break;
+
+    case MANUAL_STEP:
+      if (board_button_pressed()) {
+        delay_ms += period_ms;
+        if (delay_ms >= button_hold_time_ms) {
+          mode = RUNNING;
+          delay_ms = 0u;
+        }
+      } else {
+        delay_ms = 0u;
+      }
       break;
 
     default:

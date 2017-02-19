@@ -9,6 +9,7 @@
 #include "board.h"
 #include "hall.h"
 #include "pwm.h"
+#include "adc.h"
 #include "bldc.h"
 #include "modes.h"
 
@@ -40,6 +41,7 @@ int main(void)
   board_init();
   hall_init();
   pwm_init();
+  adc_init();
 
   modes_init();
   bldc_init();

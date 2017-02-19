@@ -6,7 +6,6 @@
  */
 
 #include "pwm.h"
-#include "stm32f4xx_hal.h"
 
 #include "calmeas.h"
 
@@ -88,7 +87,7 @@ int pwm_init(void)
   __HAL_RCC_TIM1_CLK_ENABLE();
 
 #if (PWM_EDGE_ALIGNMENT == PWM_CENTER)
-  TIMhandle.Init.CounterMode       = TIM_COUNTERMODE_CENTERALIGNED1;
+  TIMhandle.Init.CounterMode       = TIM_COUNTERMODE_CENTERALIGNED3;
   m_pwm_period = HAL_RCC_GetPCLK2Freq()/PWM_FREQUENCY_HZ - 1; /* TIM1 clock source 2*APB2 (2*90 MHz), since APB2 presc != 1 */
 #else
   TIMhandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
@@ -119,6 +118,7 @@ int pwm_init(void)
   HAL_TIM_PWM_ConfigChannel(&TIMhandle, &OCinit, TIM_CHANNEL_1);
   HAL_TIM_PWM_ConfigChannel(&TIMhandle, &OCinit, TIM_CHANNEL_2);
   HAL_TIM_PWM_ConfigChannel(&TIMhandle, &OCinit, TIM_CHANNEL_3);
+  HAL_TIM_PWM_ConfigChannel(&TIMhandle, &OCinit, TIM_CHANNEL_4); // Ch4 is used to trigger adc
 
   /* Configure deadtime and lock all settings */
   TIM_BreakDeadTimeConfigTypeDef TIMBreakDThandle;
@@ -139,10 +139,16 @@ int pwm_init(void)
   NVIC_SetPriority(TIM1_BRK_TIM9_IRQn, PWM_BREAK_IRQ_PRIO);
   NVIC_EnableIRQ(TIM1_BRK_TIM9_IRQn);
 
+  /* Generate events for synchronizing with other peripherals, e.g. ADC */
+  __HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_CC4);
+  NVIC_SetPriority(TIM1_CC_IRQn, PWM_BREAK_IRQ_PRIO);
+  NVIC_EnableIRQ(TIM1_CC_IRQn);
+
   /* Start timer and set initial states OFF */
   HAL_TIM_PWM_Start(&TIMhandle, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&TIMhandle, TIM_CHANNEL_2);
   HAL_TIM_PWM_Start(&TIMhandle, TIM_CHANNEL_3);
+  HAL_TIM_PWM_Start(&TIMhandle, TIM_CHANNEL_4);
 
   HAL_TIMEx_OCN_Start(&TIMhandle, TIM_CHANNEL_1);
   HAL_TIMEx_OCN_Start(&TIMhandle, TIM_CHANNEL_2);
@@ -157,12 +163,37 @@ int pwm_init(void)
   return 0;
 }
 
+#include "debug.h"
+
+void TIM1_CC_IRQHandler(void)
+{
+  /* Capture compare 4 event */
+  if(__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_CC4) != RESET) {
+    if(__HAL_TIM_GET_IT_SOURCE(&TIMhandle, TIM_IT_CC4) !=RESET) {
+      __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_IT_CC4);
+      //DBG_PAD1_TOGGLE;
+    }
+  }
+}
+
+void TIM1_UP_TIM10_IRQHandler(void)
+{
+  /* TIM Update event */
+  if(__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_UPDATE) != RESET) {
+    if(__HAL_TIM_GET_IT_SOURCE(&TIMhandle, TIM_IT_UPDATE) !=RESET) {
+      __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_IT_UPDATE);
+      //DBG_PAD1_TOGGLE;
+    }
+  }
+}
+
 void pwm_set_duty_perc(float duty)
 {
   uint32_t duty_period = (uint32_t) (0.01f * duty * ((float) m_pwm_period));
   TIMhandle.Instance->CCR1 = duty_period;
   TIMhandle.Instance->CCR2 = duty_period;
   TIMhandle.Instance->CCR3 = duty_period;
+  TIMhandle.Instance->CCR4 = duty_period >> 1u;
 }
 
 void pwm_commutation_event(void)
