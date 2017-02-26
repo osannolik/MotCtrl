@@ -10,6 +10,7 @@
 #include "hall.h"
 #include "pwm.h"
 #include "adc.h"
+#include "ext.h"
 #include "bldc.h"
 #include "modes.h"
 
@@ -42,6 +43,8 @@ int main(void)
   hall_init();
   pwm_init();
   adc_init();
+
+  ext_init();
 
   modes_init();
   bldc_init();

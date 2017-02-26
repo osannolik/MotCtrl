@@ -34,7 +34,7 @@
 #define PWM_GATE_L_C_PORT   GPIOB
 #define PWM_GATE_L_C_CLK_EN __HAL_RCC_GPIOB_CLK_ENABLE()
 
-#define PWM_FREQUENCY_HZ    (16000u)
+#define PWM_FREQUENCY_HZ    (20000u)
 
 #define PWM_EDGE            (0u)
 #define PWM_CENTER          (1u)

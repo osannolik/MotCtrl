@@ -27,6 +27,7 @@ static volatile queue_t uart_ByteBufRx;
 // Tx Data
 static volatile uint8_t uart_ByteBufTx[UART_BUF_TX_LEN];
 
+static volatile uint8_t uart_is_parsing_buf_rx = 0;
 
 static int uart_delimiter_found();
 
@@ -41,6 +42,8 @@ uint32_t uart_receive_data(uint8_t **data)
 {
   uint32_t len;
   uint8_t d;  
+
+  uart_is_parsing_buf_rx = 1;
 
   while (!queue_IsEmpty(&uart_ByteBufRx)) {
 
@@ -67,6 +70,8 @@ uint32_t uart_receive_data(uint8_t **data)
     } 
 
   }
+
+  uart_is_parsing_buf_rx = 0;
 
   return 0;
 }
@@ -217,13 +222,27 @@ int uart_init_peripheral()
   return 0;
 }
 
+static uint32_t rx_frame_len = 0;
+
 void USART6_IRQHandler()
 {
   uint8_t d;
-  if (UART_INSTANCE->SR & UART_FLAG_RXNE) {
-    queue_Push(&uart_ByteBufRx, d = (uint8_t) UART_INSTANCE->DR);
-    if (d == UART_FRAME_DELIMITER)
+
+  if(__HAL_UART_GET_FLAG(&UARThandle, UART_FLAG_ORE)) {
+    __HAL_UART_CLEAR_OREFLAG(&UARThandle);
+
+    if (!uart_is_parsing_buf_rx) {
+      queue_Flush(&uart_ByteBufRx, rx_frame_len);
+    }
+
+  } else if(__HAL_UART_GET_FLAG(&UARThandle, UART_FLAG_RXNE)) {
+    d = (uint8_t) UART_INSTANCE->DR;
+    queue_Push(&uart_ByteBufRx, d);
+    rx_frame_len++;
+    if (d == UART_FRAME_DELIMITER) {
       uart_delimiter_found();
+      rx_frame_len = 0;
+    }
   }
 }
 

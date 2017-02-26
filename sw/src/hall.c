@@ -65,8 +65,12 @@ uint8_t hall_state(void)
   return form_hall_state(m_hall1, m_hall2, m_hall3);
 }
 
+#include "debug.h"
+
 void EXTI9_5_IRQHandler(void)
 {
+
+
   if(__HAL_GPIO_EXTI_GET_IT(HALL_SENSOR_H1_PIN) != RESET) {
     __HAL_GPIO_EXTI_CLEAR_IT(HALL_SENSOR_H1_PIN);
   } else if(__HAL_GPIO_EXTI_GET_IT(HALL_SENSOR_H2_PIN) != RESET) {
@@ -74,6 +78,14 @@ void EXTI9_5_IRQHandler(void)
   } else if(__HAL_GPIO_EXTI_GET_IT(HALL_SENSOR_H3_PIN) != RESET) {
     __HAL_GPIO_EXTI_CLEAR_IT(HALL_SENSOR_H3_PIN);
   }
+
   m_hall_hallstate = hall_state();
+
+  if (m_hall_hallstate == 1u) {
+    DBG_PAD2_SET;
+  }
+
   bldc_hall_indication(m_hall_hallstate);
+
+  DBG_PAD2_RESET;
 }

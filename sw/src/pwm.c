@@ -7,10 +7,14 @@
 
 #include "pwm.h"
 
+#include "debug.h"
 #include "calmeas.h"
 
 /* Measurements */
 CALMEAS_SYMBOL(uint32_t, m_pwm_period, 0, "");
+
+/* Parameters */
+CALMEAS_SYMBOL(float, p_pwm_sample_delay, 0.5f, "");
 
 static TIM_HandleTypeDef TIMhandle;
 
@@ -139,10 +143,12 @@ int pwm_init(void)
   NVIC_SetPriority(TIM1_BRK_TIM9_IRQn, PWM_BREAK_IRQ_PRIO);
   NVIC_EnableIRQ(TIM1_BRK_TIM9_IRQn);
 
+#if 0
   /* Generate events for synchronizing with other peripherals, e.g. ADC */
   __HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_CC4);
   NVIC_SetPriority(TIM1_CC_IRQn, PWM_BREAK_IRQ_PRIO);
   NVIC_EnableIRQ(TIM1_CC_IRQn);
+#endif
 
   /* Start timer and set initial states OFF */
   HAL_TIM_PWM_Start(&TIMhandle, TIM_CHANNEL_1);
@@ -163,8 +169,7 @@ int pwm_init(void)
   return 0;
 }
 
-#include "debug.h"
-
+#if 0
 void TIM1_CC_IRQHandler(void)
 {
   /* Capture compare 4 event */
@@ -186,14 +191,19 @@ void TIM1_UP_TIM10_IRQHandler(void)
     }
   }
 }
+#endif
 
 void pwm_set_duty_perc(float duty)
 {
-  uint32_t duty_period = (uint32_t) (0.01f * duty * ((float) m_pwm_period));
+  duty = 0.01f * duty * ((float) m_pwm_period);
+
+  uint32_t duty_period  = (uint32_t) (duty);
+  uint32_t sample_period = (uint32_t) (p_pwm_sample_delay * duty);
+
   TIMhandle.Instance->CCR1 = duty_period;
   TIMhandle.Instance->CCR2 = duty_period;
   TIMhandle.Instance->CCR3 = duty_period;
-  TIMhandle.Instance->CCR4 = duty_period >> 1u;
+  TIMhandle.Instance->CCR4 = sample_period;
 }
 
 void pwm_commutation_event(void)

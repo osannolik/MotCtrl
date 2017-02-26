@@ -6,20 +6,34 @@
  */
 
 #include "adc.h"
+#include "ext.h"
+#include "fault.h"
 
+#include "debug.h"
 #include "calmeas.h"
 
 /* Measurements */
-CALMEAS_SYMBOL(uint32_t, m_adc_i_a, 0, "");
-CALMEAS_SYMBOL(uint32_t, m_adc_i_b, 0, "");
-CALMEAS_SYMBOL(uint32_t, m_adc_i_c, 0, "");
+CALMEAS_SYMBOL(uint32_t, m_adc_i_a,   0, "");
+CALMEAS_SYMBOL(uint32_t, m_adc_i_b,   0, "");
+CALMEAS_SYMBOL(uint32_t, m_adc_i_c,   0, "");
 CALMEAS_SYMBOL(uint32_t, m_adc_emf_a, 0, "");
 CALMEAS_SYMBOL(uint32_t, m_adc_emf_b, 0, "");
 CALMEAS_SYMBOL(uint32_t, m_adc_emf_c, 0, "");
 
-ADC_HandleTypeDef    AdcHandle_1;
-ADC_HandleTypeDef    AdcHandle_2;
-ADC_HandleTypeDef    AdcHandle_3;
+/* Parameters */
+CALMEAS_SYMBOL(uint8_t, p_adc_debug_output_sel, 0, "");
+
+static uint32_t * const adc_debug_variables[6] = {
+    &m_adc_i_a,
+    &m_adc_i_b,
+    &m_adc_i_c,
+    &m_adc_emf_a,
+    &m_adc_emf_b,
+    &m_adc_emf_c
+};
+static ADC_HandleTypeDef AdcHandle_1;
+static ADC_HandleTypeDef AdcHandle_2;
+static ADC_HandleTypeDef AdcHandle_3;
 
 int adc_init()
 {
@@ -136,16 +150,28 @@ int adc_init()
   return 0;
 }
 
-#include "debug.h"
-
 void ADC_IRQHandler(void)
 {
-  DBG_PAD1_TOGGLE;
-  m_adc_i_a   = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, 1);
-  m_adc_emf_a = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, 2);
-  m_adc_i_b   = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, 1);
-  m_adc_emf_b = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, 2);
-  m_adc_i_c   = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, 1);
-  m_adc_emf_c = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, 2);
-  HAL_ADC_IRQHandler(&AdcHandle_1);
+  if(__HAL_ADC_GET_FLAG(&AdcHandle_1, ADC_FLAG_JEOC)) {
+    DBG_PAD1_TOGGLE;
+
+    m_adc_i_a   = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, 1);
+    m_adc_emf_a = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, 2);
+    m_adc_i_b   = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, 1);
+    m_adc_emf_b = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, 2);
+    m_adc_i_c   = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, 1);
+    m_adc_emf_c = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, 2);
+
+    ext_dac_set_value_raw(*adc_debug_variables[p_adc_debug_output_sel]);
+
+    __HAL_ADC_CLEAR_FLAG(&AdcHandle_1, ADC_FLAG_JEOC);
+  }
+
+  if(__HAL_ADC_GET_FLAG(&AdcHandle_1, ADC_FLAG_OVR)) {
+    __HAL_ADC_CLEAR_FLAG(&AdcHandle_1, ADC_FLAG_OVR);
+
+    fault_general_failure();
+  }
 }
+
+
