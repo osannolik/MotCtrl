@@ -44,7 +44,7 @@
 
 int pwm_init(void);
 void pwm_set_duty_perc(float duty);
-void pwm_commutation_event(void);
+void pwm_update_event(void);
 void pwm_break_event(void);
 void pwm_ch3_off(void);
 void pwm_ch3_pwm_afw(void);

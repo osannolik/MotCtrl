@@ -9,15 +9,7 @@
 #define BLDC_H_
 
 #include "stm32f4xx_hal.h"
-
-#define POS_NUMBER_OF_HALL_STATES (8)
-
-typedef enum {
-  DIR_CW   = 0,
-  DIR_CCW  = 1,
-  DIR_NONE = 2,
-  NUMBER_OF_DIRS = 3
-} bldc_direction_t;
+#include "position.h"
 
 typedef enum {
   STEP_OFF        = 0,
@@ -44,7 +36,6 @@ void bldc_set_duty_cycle(float duty_req);
 int bldc_init(void);
 void bldc_safe_state(void);
 bldc_cal_state_t bldc_cal_state(void);
-void bldc_commutation(bldc_direction_t direction, uint8_t current_hall_state);
-void bldc_hall_indication(uint8_t current_hall_state);
+void bldc_commutation(pos_direction_t direction, uint8_t current_hall_state);
 
 #endif /* BLDC_H_ */

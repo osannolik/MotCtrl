@@ -9,7 +9,12 @@
 #include "board.h"
 #include "bldc.h"
 
-static modes_mode_t mode = INACTIVE;
+#include "calmeas.h"
+
+//static modes_mode_t mode = INACTIVE;
+#define CALMEAS_TYPECODE_modes_mode_t   CALMEAS_TYPECODE_uint8_t
+#define CALMEAS_MEMSEC_modes_mode_t     CALMEAS_MEMSEC_uint8_t
+CALMEAS_SYMBOL(modes_mode_t, mode, INACTIVE, "");
 
 int modes_init(void)
 {
@@ -55,6 +60,18 @@ void modes_step(uint32_t period_ms)
       break;
 
     case MANUAL_STEP:
+      if (board_button_pressed()) {
+        delay_ms += period_ms;
+        if (delay_ms >= button_hold_time_ms) {
+          mode = OPEN_LOOP;
+          delay_ms = 0u;
+        }
+      } else {
+        delay_ms = 0u;
+      }
+      break;
+
+    case OPEN_LOOP:
       if (board_button_pressed()) {
         delay_ms += period_ms;
         if (delay_ms >= button_hold_time_ms) {

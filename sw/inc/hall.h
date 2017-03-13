@@ -28,5 +28,6 @@ int hall_init(void);
 void hall_individual_states(uint8_t *h1, uint8_t *h2, uint8_t *h3);
 void hall_start(void);
 uint8_t hall_state(void);
+void hall_set_commutation_indication_cb(void (* callback)(uint8_t));
 
 #endif /* HALL_H_ */

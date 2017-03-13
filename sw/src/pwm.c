@@ -206,7 +206,7 @@ void pwm_set_duty_perc(float duty)
   TIMhandle.Instance->CCR4 = sample_period;
 }
 
-void pwm_commutation_event(void)
+void pwm_update_event(void)
 {
   HAL_TIM_GenerateEvent(&TIMhandle, TIM_EVENTSOURCE_COM);
 }

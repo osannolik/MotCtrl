@@ -6,7 +6,6 @@
  */
 
 #include "hall.h"
-#include "bldc.h"
 
 #include "calmeas.h"
 
@@ -15,6 +14,8 @@ CALMEAS_SYMBOL(uint8_t, m_hall1, 0, "");
 CALMEAS_SYMBOL(uint8_t, m_hall2, 0, "");
 CALMEAS_SYMBOL(uint8_t, m_hall3, 0, "");
 CALMEAS_SYMBOL(uint8_t, m_hall_hallstate, 0, "");
+
+static void (* commutation_indication_cb)(uint8_t hall_state) = NULL;
 
 int hall_init(void)
 {
@@ -48,6 +49,11 @@ void hall_start(void)
   NVIC_EnableIRQ(EXTI9_5_IRQn);
 }
 
+void hall_set_commutation_indication_cb(void (* callback)(uint8_t))
+{
+  commutation_indication_cb = callback;
+}
+
 void hall_individual_states(uint8_t *h1, uint8_t *h2, uint8_t *h3)
 {
   *h1 = (uint8_t) ((HALL_SENSOR_H1_PORT->IDR & HALL_SENSOR_H1_PIN) == HALL_SENSOR_H1_PIN);
@@ -69,8 +75,6 @@ uint8_t hall_state(void)
 
 void EXTI9_5_IRQHandler(void)
 {
-
-
   if(__HAL_GPIO_EXTI_GET_IT(HALL_SENSOR_H1_PIN) != RESET) {
     __HAL_GPIO_EXTI_CLEAR_IT(HALL_SENSOR_H1_PIN);
   } else if(__HAL_GPIO_EXTI_GET_IT(HALL_SENSOR_H2_PIN) != RESET) {
@@ -85,7 +89,9 @@ void EXTI9_5_IRQHandler(void)
     DBG_PAD2_SET;
   }
 
-  bldc_hall_indication(m_hall_hallstate);
+  if (commutation_indication_cb != NULL) {
+    commutation_indication_cb(m_hall_hallstate);
+  }
 
   DBG_PAD2_RESET;
 }
