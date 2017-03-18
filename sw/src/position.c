@@ -17,6 +17,10 @@ CALMEAS_SYMBOL(uint8_t, m_pos_hall3, 0, "");
 CALMEAS_SYMBOL(uint8_t, m_pos_hallstate, 0, "");
 CALMEAS_SYMBOL(uint32_t, m_pos_speed_timer, 0, "");
 
+/* Parameters */
+CALMEAS_SYMBOL(float, p_commutation_delay, 0.0f, "");
+
+
 static void (* commutation_indication_cb)(uint8_t hall_state) = NULL;
 static float hall_state_to_angle_map_cw[POS_NUMBER_OF_HALL_STATES] = {0.0f};
 static float hall_state_to_angle_map_ccw[POS_NUMBER_OF_HALL_STATES] = {0.0f};
@@ -46,45 +50,46 @@ int position_init(void)
   GPIOinitstruct.Pin = HALL_SENSOR_H3_PIN;
   HAL_GPIO_Init(HALL_SENSOR_H3_PORT, &GPIOinitstruct);
 
+  /* Initialize TIM4 peripheral as follows:
+   *
+   * - Hall sensor inputs are connected to Ch1, Ch2, and Ch3.
+   * - TI1 is xor of all three channels.
+   * - Input capture IC1 is configured to capture at both edges of TI1.
+   * - TI1F_ED = TI1 is set to trigger a reset of the timer.
+   * - OC2 is configured to create a pulse delayed from the TRC = TI1F_ED event.
+   * - Interrupt at input capture and delayed pulse event.
+   *
+   * This way it is possible to measure the time between two consecutive
+   * hall sensor changes and thus to estimate the speed of the motor.
+   * Also, it is possible to trigger the commutation of the BLDC based on
+   * the IC (or delayed pulse) interrupt.
+   *
+   * Configuration:
+   *   APB1 is the clock source = 2*APB1 (2*45 MHz)
+   *   Using a prescaler of 225 and using all 16 bits yields:
+   *   - Resolution = 225 * 90 MHz = 2.5 us
+   *   - Time until overflow = 2^16 * 225 * 90 MHz = 0.16384 s
+   * This allows for a speed down to 61 rpm before an overflow occurs.
+   * At 10000 rpm, the resolution will be approx 2.5 us * (10000^2)/10 = 25 rpm
+   */
 
-  TIMhandle.Instance = TIM4;
-
-  /* Initialize TIMx peripheral as follows:
-   *   APB1 is the clock source
-   *   90000000/(1/((2^-9)/1000)) = 176*/
-
-  //period = 2*HAL_RCC_GetPCLK1Freq()/PWM_FREQUENCY_HZ - 1; /* TIM1 clock source 2*APB1 (2*45 MHz), since APB2 presc != 1 */
-
+  TIMhandle.Instance               = TIM4;
   TIMhandle.Init.Period            = 0xFFFF;
-  TIMhandle.Init.Prescaler         = 176;
+  TIMhandle.Init.Prescaler         = 225-1;
   TIMhandle.Init.ClockDivision     = 0;
   TIMhandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
   TIMhandle.Init.RepetitionCounter = 0;
-  HAL_TIM_IC_Init(&TIMhandle);
 
-  HAL_TIM_ConfigTI1Input(&TIMhandle, TIM_TI1SELECTION_XORCOMBINATION);
+  TIM_HallSensor_InitTypeDef TIMHallSensorInithandle;
+  TIMHallSensorInithandle.Commutation_Delay = 1u;
+  TIMHallSensorInithandle.IC1Filter         = 0x0Fu;
+  TIMHallSensorInithandle.IC1Polarity       = TIM_ICPOLARITY_BOTHEDGE;
+  TIMHallSensorInithandle.IC1Prescaler      = TIM_ICPSC_DIV1;
+  HAL_TIMEx_HallSensor_Init(&TIMhandle, &TIMHallSensorInithandle);
 
-  TIM_IC_InitTypeDef ICInithandle;
-  ICInithandle.ICPolarity  = TIM_ICPOLARITY_BOTHEDGE;
-  ICInithandle.ICSelection = TIM_ICSELECTION_DIRECTTI;
-  ICInithandle.ICPrescaler = TIM_ICPSC_DIV1;
-  ICInithandle.ICFilter    = 0;
-  HAL_TIM_IC_ConfigChannel(&TIMhandle, &ICInithandle, TIM_CHANNEL_1);
-
-#if 0
-  // Automatic reset does not seem to work?
-  TIM_SlaveConfigTypeDef TIMSlaveConfighandle;
-  TIMSlaveConfighandle.InputTrigger     = TIM_SLAVEMODE_RESET;
-  TIMSlaveConfighandle.SlaveMode        = TIM_TS_TI1F_ED;
-  TIMSlaveConfighandle.TriggerFilter    = 0u;
-  TIMSlaveConfighandle.TriggerPolarity  = TIM_TRIGGERPOLARITY_BOTHEDGE;
-  TIMSlaveConfighandle.TriggerPrescaler = TIM_TRIGGERPRESCALER_DIV1;
-  HAL_TIM_SlaveConfigSynchronization(&TIMhandle, &TIMSlaveConfighandle);
-#endif
-
-  HAL_TIM_IC_Start_IT(&TIMhandle, TIM_CHANNEL_1);
-  HAL_TIM_Base_Start_IT(&TIMhandle);
-
+  HAL_TIMEx_HallSensor_Start_IT(&TIMhandle);
+  __HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_CC2);
+  //__HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_UPDATE);
 
   NVIC_SetPriority(TIM4_IRQn, HALL_EXI_IRQ_PRIO);
   NVIC_EnableIRQ(TIM4_IRQn);
@@ -93,36 +98,59 @@ int position_init(void)
 }
 
 #include "debug.h"
+#include "ext.h"
+
+
+#if 0
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  DBG_PAD1_TOGGLE;
+}
+#endif
+
+static void hall_commutation(void)
+{
+  DBG_PAD2_TOGGLE;
+
+  m_pos_hallstate = position_get_hall_state();
+
+  if (m_pos_hallstate == 1u) {
+    //DBG_PAD2_SET;
+  }
+
+  if (commutation_indication_cb != NULL) {
+    commutation_indication_cb(m_pos_hallstate);
+  }
+}
+
+static void hall_period_update(TIM_HandleTypeDef *htim)
+{
+  DBG_PAD3_TOGGLE;
+
+  m_pos_speed_timer = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1); // Also clears IF
+
+  htim->Instance->CCR2 = (uint32_t) (((float) m_pos_speed_timer) * p_commutation_delay);
+}
 
 void TIM4_IRQHandler(void)
 {
-  /* xor of hall sensors changed */
-  if (__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_CC1)) {
-
-    m_pos_speed_timer = HAL_TIM_ReadCapturedValue(&TIMhandle, TIM_CHANNEL_1);
+  /* Input capture (xor of hall sensor):
+   * Calculate speed! */
+  if (__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_CC1) && \
+      __HAL_TIM_GET_IT_SOURCE(&TIMhandle, TIM_IT_CC1)) {
     __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_IT_CC1);
 
-    m_pos_hallstate = position_get_hall_state();
-
-    if (m_pos_hallstate == 1u) {
-      DBG_PAD2_SET;
-    }
-
-    if (commutation_indication_cb != NULL) {
-      commutation_indication_cb(m_pos_hallstate);
-    }
-
-    DBG_PAD2_RESET;
+    hall_period_update(&TIMhandle);
   }
 
-  /* Speed timer overflow */
-  if (__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_UPDATE)) {
-    __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_IT_UPDATE);
+  /* Output compare is creating a pulse delayed from the input capture event:
+   * Trigger a BLDC commutation! */
+  if(__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_CC2) && \
+     __HAL_TIM_GET_IT_SOURCE(&TIMhandle, TIM_IT_CC2)) {
+    __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_IT_CC2);
 
-    DBG_PAD3_TOGGLE;
+    hall_commutation();
   }
-
-  HAL_TIM_IRQHandler(&TIMhandle);
 }
 
 void position_set_hall_commutation_indication_cb(void (* callback)(uint8_t))

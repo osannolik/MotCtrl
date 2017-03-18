@@ -153,7 +153,7 @@ int adc_init()
 void ADC_IRQHandler(void)
 {
   if(__HAL_ADC_GET_FLAG(&AdcHandle_1, ADC_FLAG_JEOC)) {
-    DBG_PAD1_TOGGLE;
+    //DBG_PAD1_TOGGLE;
 
     m_adc_i_a   = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, 1);
     m_adc_emf_a = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, 2);
