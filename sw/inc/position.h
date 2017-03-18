@@ -21,6 +21,7 @@ typedef enum {
 
 int position_init(void);
 void position_set_hall_commutation_indication_cb(void (* callback)(uint8_t));
+void position_hall_individual_states(uint8_t *h1, uint8_t *h2, uint8_t *h3);
 uint8_t position_get_hall_state(void);
 void position_map_hall_state_to_angle(uint8_t hall_state, float angle);
 float position_get_angle_est(void);
