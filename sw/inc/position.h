@@ -10,7 +10,21 @@
 
 #include "stm32f4xx_hal.h"
 
-#define POS_NUMBER_OF_HALL_STATES (8)
+/* The hall sensor offset is here defined as the smallest angle between the sensor
+ * position and the stator flux vectors that can be obtained by the 6-step BLDC modulation.
+ * I.e. 30 degrees offset corresponds to the case where applying a stationary vector
+ * will align the rotor to the center of two hall sensors state changes.
+ * Range 0-30.
+ */
+#define POS_HALL_SENSOR_OFFSET_DEG      (30)
+
+/* When the offset is non-zero then it is required to delay the commutation in order
+ * to get a stator flux vector that creates an angle to the rotor that varies from 120-60 deg.
+ * The time of delay is nominally set to half the time the previous commutation cycle took.
+ */
+#define POS_HALL_COMMUTATION_DELAY_PERC (POS_HALL_SENSOR_OFFSET_DEG*0.5f/30.0f)
+
+#define POS_NUMBER_OF_HALL_STATES       (8)
 
 typedef enum {
   DIR_CW   = 0,

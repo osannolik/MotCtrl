@@ -25,45 +25,6 @@ CALMEAS_SYMBOL(uint32_t, p_openloop_commutation_delay_ms, 200, "");
 
 static bldc_cal_state_t cal_state = CAL_NOT_PERFORMED;
 
-static void (* const commutation_steps_ch3_cal_0deg[NUMBER_OF_STEPS])(void) =
-{
-  /* Use index 0 for gate off */
-  [STEP_OFF] = pwm_ch3_off,
-  /* Normal steps */
-  [STEP_1] = pwm_ch3_pwm_afw,
-  [STEP_2] = pwm_ch3_pwm_afw,
-  [STEP_3] = pwm_ch3_pwm_afw,
-  [STEP_4] = pwm_ch3_sink,
-  [STEP_5] = pwm_ch3_sink,
-  [STEP_6] = pwm_ch3_sink
-};
-
-static void (* const commutation_steps_ch2_cal_0deg[NUMBER_OF_STEPS])(void) =
-{
-  /* Use index 0 for gate off */
-  [STEP_OFF] = pwm_ch2_off,
-  /* Normal steps */
-  [STEP_1] = pwm_ch2_pwm_afw,
-  [STEP_2] = pwm_ch2_sink,
-  [STEP_3] = pwm_ch2_sink,
-  [STEP_4] = pwm_ch2_sink,
-  [STEP_5] = pwm_ch2_pwm_afw,
-  [STEP_6] = pwm_ch2_pwm_afw
-};
-
-static void (* const commutation_steps_ch1_cal_0deg[NUMBER_OF_STEPS])(void) =
-{
-  /* Use index 0 for gate off */
-  [STEP_OFF] = pwm_ch1_off,
-  /* Normal steps */
-  [STEP_1] = pwm_ch1_sink,
-  [STEP_2] = pwm_ch1_sink,
-  [STEP_3] = pwm_ch1_pwm_afw,
-  [STEP_4] = pwm_ch1_pwm_afw,
-  [STEP_5] = pwm_ch1_pwm_afw,
-  [STEP_6] = pwm_ch1_sink
-};
-
 static void (* const commutation_steps_ch3[NUMBER_OF_STEPS])(void) =
 {
   /* Use index 0 for gate off */
@@ -110,7 +71,65 @@ static uint8_t bldc_hall_state_to_step_map[NUMBER_OF_DIRS][POS_NUMBER_OF_HALL_ST
   [DIR_CCW]  = {0u, 5u, 3u, 4u, 1u, 6u, 2u, 0u}
 };
 
-static void bldc_hall_commutation(uint8_t current_hall_state);
+#if (POS_HALL_SENSOR_OFFSET_DEG > 15)
+#define commutation_steps_ch3_cal commutation_steps_ch3
+#define commutation_steps_ch2_cal commutation_steps_ch2
+#define commutation_steps_ch1_cal commutation_steps_ch1
+
+static const uint8_t cal_step_to_commutation_step[NUMBER_OF_DIRS][NUMBER_OF_STEPS] =
+{
+  [DIR_NONE] = {STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF},
+  [DIR_CW]   = {STEP_OFF, STEP_3,   STEP_4,   STEP_5,   STEP_6,   STEP_1,   STEP_2},
+  [DIR_CCW]  = {STEP_OFF, STEP_5,   STEP_6,   STEP_1,   STEP_2,   STEP_3,   STEP_4}
+};
+#else
+static void (* const commutation_steps_ch3_cal[NUMBER_OF_STEPS])(void) =
+{
+  /* Use index 0 for gate off */
+  [STEP_OFF] = pwm_ch3_off,
+  /* Normal steps */
+  [STEP_1] = pwm_ch3_pwm_afw,
+  [STEP_2] = pwm_ch3_pwm_afw,
+  [STEP_3] = pwm_ch3_pwm_afw,
+  [STEP_4] = pwm_ch3_sink,
+  [STEP_5] = pwm_ch3_sink,
+  [STEP_6] = pwm_ch3_sink
+};
+
+static void (* const commutation_steps_ch2_cal[NUMBER_OF_STEPS])(void) =
+{
+  /* Use index 0 for gate off */
+  [STEP_OFF] = pwm_ch2_off,
+  /* Normal steps */
+  [STEP_1] = pwm_ch2_pwm_afw,
+  [STEP_2] = pwm_ch2_sink,
+  [STEP_3] = pwm_ch2_sink,
+  [STEP_4] = pwm_ch2_sink,
+  [STEP_5] = pwm_ch2_pwm_afw,
+  [STEP_6] = pwm_ch2_pwm_afw
+};
+
+static void (* const commutation_steps_ch1_cal[NUMBER_OF_STEPS])(void) =
+{
+  /* Use index 0 for gate off */
+  [STEP_OFF] = pwm_ch1_off,
+  /* Normal steps */
+  [STEP_1] = pwm_ch1_sink,
+  [STEP_2] = pwm_ch1_sink,
+  [STEP_3] = pwm_ch1_pwm_afw,
+  [STEP_4] = pwm_ch1_pwm_afw,
+  [STEP_5] = pwm_ch1_pwm_afw,
+  [STEP_6] = pwm_ch1_sink
+};
+
+static const uint8_t cal_step_to_commutation_step[NUMBER_OF_DIRS][NUMBER_OF_STEPS] =
+{
+  [DIR_NONE] = {STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF},
+  [DIR_CW]   = {STEP_OFF, STEP_2,   STEP_3,   STEP_4,   STEP_5,   STEP_6,   STEP_1},
+  [DIR_CCW]  = {STEP_OFF, STEP_5,   STEP_6,   STEP_1,   STEP_2,   STEP_3,   STEP_4}
+};
+#endif /* (POS_HALL_SENSOR_OFFSET_DEG > 15) */
+
 
 static void hall_calibration_step(uint32_t period_ms)
 {
@@ -121,13 +140,6 @@ static void hall_calibration_step(uint32_t period_ms)
   uint8_t hallstate;
   static float angle = 0.0f;
 
-  const uint8_t cal_step_to_commutation_step[NUMBER_OF_DIRS][NUMBER_OF_STEPS] =
-  {
-    [DIR_NONE] = {STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF, STEP_OFF},
-    [DIR_CW]   = {STEP_OFF, STEP_2,   STEP_3,   STEP_4,   STEP_5,   STEP_6,   STEP_1},
-    [DIR_CCW]  = {STEP_OFF, STEP_5,   STEP_6,   STEP_1,   STEP_2,   STEP_3,   STEP_4}
-  };
-
   switch (cal_state) {
 
     case CAL_NOT_PERFORMED:
@@ -137,9 +149,9 @@ static void hall_calibration_step(uint32_t period_ms)
       break;
 
     case CAL_PRE_ROTATION:
-      commutation_steps_ch1_cal_0deg[step]();
-      commutation_steps_ch2_cal_0deg[step]();
-      commutation_steps_ch3_cal_0deg[step]();
+      commutation_steps_ch1_cal[step]();
+      commutation_steps_ch2_cal[step]();
+      commutation_steps_ch3_cal[step]();
 
       pwm_update_event();
       pwm_set_duty_perc(3.0f);
@@ -156,9 +168,9 @@ static void hall_calibration_step(uint32_t period_ms)
       break;
 
     case CAL_PROBING:
-      commutation_steps_ch1_cal_0deg[step]();
-      commutation_steps_ch2_cal_0deg[step]();
-      commutation_steps_ch3_cal_0deg[step]();
+      commutation_steps_ch1_cal[step]();
+      commutation_steps_ch2_cal[step]();
+      commutation_steps_ch3_cal[step]();
 
       pwm_update_event();
       pwm_set_duty_perc(3.0f);

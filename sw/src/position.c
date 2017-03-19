@@ -18,7 +18,7 @@ CALMEAS_SYMBOL(uint8_t, m_pos_hallstate, 0, "");
 CALMEAS_SYMBOL(uint32_t, m_pos_speed_timer, 0, "");
 
 /* Parameters */
-CALMEAS_SYMBOL(float, p_commutation_delay, 0.0f, "");
+CALMEAS_SYMBOL(float, p_commutation_delay, POS_HALL_COMMUTATION_DELAY_PERC, "");
 
 
 static void (* commutation_indication_cb)(uint8_t hall_state) = NULL;
