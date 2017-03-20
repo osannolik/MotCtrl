@@ -22,7 +22,7 @@
 #define HALL_SENSOR_H3_PORT   GPIOB
 #define HALL_SENSOR_H3_CLK_EN __HAL_RCC_GPIOB_CLK_ENABLE()
 
-#define HALL_EXI_IRQ_PRIO     (0x03u)
+#define HALL_IRQ_PRIO         (0x03u)
 
 int hall_init(void);
 void hall_individual_states(uint8_t *h1, uint8_t *h2, uint8_t *h3);

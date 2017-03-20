@@ -16,15 +16,21 @@ CALMEAS_SYMBOL(uint8_t, m_pos_hall2, 0, "");
 CALMEAS_SYMBOL(uint8_t, m_pos_hall3, 0, "");
 CALMEAS_SYMBOL(uint8_t, m_pos_hallstate, 0, "");
 CALMEAS_SYMBOL(uint32_t, m_pos_speed_timer, 0, "");
+#define CALMEAS_TYPECODE_pos_direction_t   CALMEAS_TYPECODE_uint8_t
+#define CALMEAS_MEMSEC_pos_direction_t     CALMEAS_MEMSEC_uint8_t
+CALMEAS_SYMBOL(pos_direction_t, m_pos_direction, DIR_NONE, "");
 
 /* Parameters */
 CALMEAS_SYMBOL(float, p_commutation_delay, POS_HALL_COMMUTATION_DELAY_PERC, "");
 
 
 static void (* commutation_indication_cb)(uint8_t hall_state) = NULL;
-static float hall_state_to_angle_map_cw[POS_NUMBER_OF_HALL_STATES] = {0.0f};
-static float hall_state_to_angle_map_ccw[POS_NUMBER_OF_HALL_STATES] = {0.0f};
+static float hall_state_to_angle_map_cw[POS_NUMBER_OF_HALL_STATES];
+static float hall_state_to_angle_map_ccw[POS_NUMBER_OF_HALL_STATES];
+static pos_direction_t hall_state_to_direction[POS_NUMBER_OF_HALL_STATES][POS_NUMBER_OF_HALL_STATES];
 static TIM_HandleTypeDef TIMhandle;
+static uint8_t hallstate_prev = DIR_NONE;
+
 
 int position_init(void)
 {
@@ -91,8 +97,19 @@ int position_init(void)
   __HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_CC2);
   //__HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_UPDATE);
 
-  NVIC_SetPriority(TIM4_IRQn, HALL_EXI_IRQ_PRIO);
+  NVIC_SetPriority(TIM4_IRQn, HALL_IRQ_PRIO);
   NVIC_EnableIRQ(TIM4_IRQn);
+
+  uint8_t i, j;
+  for (i=0; i<POS_NUMBER_OF_HALL_STATES; i++) {
+    for (j=0; j<POS_NUMBER_OF_HALL_STATES; j++) {
+      hall_state_to_direction[i][j] = DIR_NONE;
+      hall_state_to_direction[i][j] = DIR_NONE;
+    }
+
+    hall_state_to_angle_map_cw[i] = -1.0f;
+    hall_state_to_angle_map_ccw[i] = -1.0f;
+  }
 
   return 0;
 }
@@ -112,6 +129,7 @@ static void hall_commutation(void)
 {
   DBG_PAD2_TOGGLE;
 
+  hallstate_prev = m_pos_hallstate;
   m_pos_hallstate = position_get_hall_state();
 
   if (m_pos_hallstate == 1u) {
@@ -121,9 +139,11 @@ static void hall_commutation(void)
   if (commutation_indication_cb != NULL) {
     commutation_indication_cb(m_pos_hallstate);
   }
+
+  m_pos_direction = position_get_direction();
 }
 
-static void hall_period_update(TIM_HandleTypeDef *htim)
+static void hall_period_update(TIM_HandleTypeDef * const htim)
 {
   DBG_PAD3_TOGGLE;
 
@@ -158,14 +178,14 @@ void position_set_hall_commutation_indication_cb(void (* callback)(uint8_t))
   commutation_indication_cb = callback;
 }
 
-void position_hall_individual_states(uint8_t *h1, uint8_t *h2, uint8_t *h3)
+void position_hall_individual_states(uint8_t * const h1, uint8_t * const h2, uint8_t * const h3)
 {
   *h1 = (uint8_t) ((HALL_SENSOR_H1_PORT->IDR & HALL_SENSOR_H1_PIN) == HALL_SENSOR_H1_PIN);
   *h2 = (uint8_t) ((HALL_SENSOR_H2_PORT->IDR & HALL_SENSOR_H2_PIN) == HALL_SENSOR_H2_PIN);
   *h3 = (uint8_t) ((HALL_SENSOR_H3_PORT->IDR & HALL_SENSOR_H3_PIN) == HALL_SENSOR_H3_PIN);
 }
 
-static inline uint8_t form_hall_state(uint8_t h1, uint8_t h2, uint8_t h3) {
+static inline uint8_t form_hall_state(const uint8_t h1, const uint8_t h2, const uint8_t h3) {
   return ((h3 << 2) | (h2 << 1) | (h1));
 }
 
@@ -175,12 +195,60 @@ uint8_t position_get_hall_state(void)
   return form_hall_state(m_pos_hall1, m_pos_hall2, m_pos_hall3);
 }
 
-void position_map_hall_state_to_angle(uint8_t hall_state, float angle)
+float wrap_to_range(const float low, const float high, float x)
+{
+  /* Wrap x into interval [low, high) */
+  /* Assumes high > low */
+
+  if (high > low) {
+    while (x >= high) {
+      x -= (high - low);
+    }
+
+    while (x < low) {
+      x += (high - low);
+    }
+  } else {
+    x = low;
+  }
+
+  return x;
+}
+
+void position_calculate_direction_map(void)
+{
+  /* An increasing angle is defined as clockwise direction */
+
+  float b;
+  uint8_t h, h_next;
+
+  for (h=0; h<POS_NUMBER_OF_HALL_STATES; h++) {
+
+    b = hall_state_to_angle_map_ccw[h];
+
+    if (0.0f<=b && b<360.0f) {
+      for (h_next=0; h_next<POS_NUMBER_OF_HALL_STATES; h_next++) {
+        if (hall_state_to_angle_map_cw[h_next] == b) {
+          hall_state_to_direction[h][h_next] = DIR_CW;
+          hall_state_to_direction[h_next][h] = DIR_CCW;
+        }
+      }
+    }
+
+  }
+}
+
+void position_map_hall_state_to_angle(const uint8_t hall_state, const float angle)
 {
   if (hall_state < POS_NUMBER_OF_HALL_STATES) {
-    hall_state_to_angle_map_cw[hall_state]  = angle + 30.0f;
-    hall_state_to_angle_map_ccw[hall_state] = angle - 30.0f;
+    hall_state_to_angle_map_cw[hall_state]  = wrap_to_range(0.0f, 360.0f, angle + 0.0f);
+    hall_state_to_angle_map_ccw[hall_state] = wrap_to_range(0.0f, 360.0f, angle + 60.0f);
   }
+}
+
+pos_direction_t position_get_direction(void)
+{
+  return hall_state_to_direction[hallstate_prev][m_pos_hallstate];
 }
 
 float position_get_angle_est(void)

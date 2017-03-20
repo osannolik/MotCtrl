@@ -196,6 +196,7 @@ static void hall_calibration_step(uint32_t period_ms)
       break;
 
     case CAL_CHECK:
+      position_calculate_direction_map();
       cal_state = CAL_OK;
       break;
 
