@@ -150,6 +150,9 @@ int adc_init()
   return 0;
 }
 
+#include "pwm.h"
+#include "position.h"
+
 void ADC_IRQHandler(void)
 {
   if(__HAL_ADC_GET_FLAG(&AdcHandle_1, ADC_FLAG_JEOC)) {
@@ -161,6 +164,8 @@ void ADC_IRQHandler(void)
     m_adc_emf_b = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, 2);
     m_adc_i_c   = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, 1);
     m_adc_emf_c = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, 2);
+
+    (void) position_angle_est_update(1.0f/((float)PWM_FREQUENCY_HZ));
 
     ext_dac_set_value_raw(*adc_debug_variables[p_adc_debug_output_sel]);
 

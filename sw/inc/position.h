@@ -26,6 +26,8 @@
 
 #define POS_NUMBER_OF_HALL_STATES       (8)
 
+#define RPM_TO_DEGPS                    (6.0f)
+
 typedef enum {
   DIR_CW   = 0,
   DIR_CCW  = 1,
@@ -40,8 +42,10 @@ uint8_t position_get_hall_state(void);
 void position_calculate_direction_map(void);
 void position_map_hall_state_to_angle(const uint8_t hall_state, const float angle);
 pos_direction_t position_get_direction(void);
-float position_get_angle_est(void);
-float position_get_speed_est(void);
+float position_get_angle_est_deg(void);
+float position_get_speed_est_erpm(void);
+void position_angle_est_reset_to(const float angle_0);
+float position_angle_est_update(const float period_s);
 float wrap_to_range(const float low, const float high, float x);
 
 #endif /* POSITION_H_ */

@@ -10,6 +10,8 @@
 
 #include "calmeas.h"
 
+#define ANGLE_UNDEFINED (-1.0f)
+ 
 /* Measurements */
 CALMEAS_SYMBOL(uint8_t, m_pos_hall1, 0, "");
 CALMEAS_SYMBOL(uint8_t, m_pos_hall2, 0, "");
@@ -19,6 +21,8 @@ CALMEAS_SYMBOL(uint32_t, m_pos_speed_timer, 0, "");
 #define CALMEAS_TYPECODE_pos_direction_t   CALMEAS_TYPECODE_uint8_t
 #define CALMEAS_MEMSEC_pos_direction_t     CALMEAS_MEMSEC_uint8_t
 CALMEAS_SYMBOL(pos_direction_t, m_pos_direction, DIR_NONE, "");
+CALMEAS_SYMBOL(float, m_pos_speed_raw_erpm, 0.0f, "");
+CALMEAS_SYMBOL(float, m_pos_angle_est_deg, 0.0f, "");
 
 /* Parameters */
 CALMEAS_SYMBOL(float, p_commutation_delay, POS_HALL_COMMUTATION_DELAY_PERC, "");
@@ -30,7 +34,7 @@ static float hall_state_to_angle_map_ccw[POS_NUMBER_OF_HALL_STATES];
 static pos_direction_t hall_state_to_direction[POS_NUMBER_OF_HALL_STATES][POS_NUMBER_OF_HALL_STATES];
 static TIM_HandleTypeDef TIMhandle;
 static uint8_t hallstate_prev = DIR_NONE;
-
+static float speed_timer_resolution_s;
 
 int position_init(void)
 {
@@ -73,18 +77,22 @@ int position_init(void)
    * Configuration:
    *   APB1 is the clock source = 2*APB1 (2*45 MHz)
    *   Using a prescaler of 225 and using all 16 bits yields:
-   *   - Resolution = 225 * 90 MHz = 2.5 us
+   *   - Resolution = 225 / 90 MHz = 2.5 us
    *   - Time until overflow = 2^16 * 225 * 90 MHz = 0.16384 s
    * This allows for a speed down to 61 rpm before an overflow occurs.
    * At 10000 rpm, the resolution will be approx 2.5 us * (10000^2)/10 = 25 rpm
    */
 
+  const uint32_t prescaler = 225u;
+
   TIMhandle.Instance               = TIM4;
   TIMhandle.Init.Period            = 0xFFFF;
-  TIMhandle.Init.Prescaler         = 225-1;
+  TIMhandle.Init.Prescaler         = prescaler - 1;
   TIMhandle.Init.ClockDivision     = 0;
   TIMhandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
   TIMhandle.Init.RepetitionCounter = 0;
+
+  speed_timer_resolution_s = ((float) prescaler) / ((float) 2.0f * HAL_RCC_GetPCLK1Freq());
 
   TIM_HallSensor_InitTypeDef TIMHallSensorInithandle;
   TIMHallSensorInithandle.Commutation_Delay = 1u;
@@ -94,7 +102,7 @@ int position_init(void)
   HAL_TIMEx_HallSensor_Init(&TIMhandle, &TIMHallSensorInithandle);
 
   HAL_TIMEx_HallSensor_Start_IT(&TIMhandle);
-  __HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_CC2);
+  //__HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_CC2);
   //__HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_UPDATE);
 
   NVIC_SetPriority(TIM4_IRQn, HALL_IRQ_PRIO);
@@ -107,16 +115,14 @@ int position_init(void)
       hall_state_to_direction[i][j] = DIR_NONE;
     }
 
-    hall_state_to_angle_map_cw[i] = -1.0f;
-    hall_state_to_angle_map_ccw[i] = -1.0f;
+    hall_state_to_angle_map_cw[i] = ANGLE_UNDEFINED;
+    hall_state_to_angle_map_ccw[i] = ANGLE_UNDEFINED;
   }
 
   return 0;
 }
 
 #include "debug.h"
-#include "ext.h"
-
 
 #if 0
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
@@ -129,38 +135,103 @@ static void hall_commutation(void)
 {
   DBG_PAD2_TOGGLE;
 
-  hallstate_prev = m_pos_hallstate;
-  m_pos_hallstate = position_get_hall_state();
-
   if (m_pos_hallstate == 1u) {
-    //DBG_PAD2_SET;
+    DBG_PAD1_SET;
   }
 
   if (commutation_indication_cb != NULL) {
     commutation_indication_cb(m_pos_hallstate);
   }
 
-  m_pos_direction = position_get_direction();
+  DBG_PAD1_RESET;
 }
 
-static void hall_period_update(TIM_HandleTypeDef * const htim)
+static float speed_raw_erpm(const uint32_t speed_timer, const pos_direction_t direction)
+{
+  float speed_raw = 10.0f / ((float) speed_timer * speed_timer_resolution_s);
+
+  if (direction == DIR_CCW) {
+    speed_raw = -speed_raw;
+  }
+
+  return speed_raw;
+}
+
+static float angle_raw_deg(const uint8_t hall_state, const pos_direction_t direction) {
+  float angle_raw = 0.0f;
+
+  switch (direction) {
+    case DIR_CW:
+      angle_raw = hall_state_to_angle_map_cw[hall_state];
+      break;
+
+    case DIR_CCW:
+      angle_raw = hall_state_to_angle_map_ccw[hall_state];
+      break;
+    case DIR_NONE:
+      break;
+
+    default:
+      break;
+  }
+
+  return angle_raw;
+}
+
+static void angle_and_speed_update(TIM_HandleTypeDef * const htim)
 {
   DBG_PAD3_TOGGLE;
 
+  /* Prepare for commutation. Assume we need to wait a factor of the latest hall period */
   m_pos_speed_timer = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1); // Also clears IF
-
   htim->Instance->CCR2 = (uint32_t) (((float) m_pos_speed_timer) * p_commutation_delay);
+
+  hallstate_prev = m_pos_hallstate;
+  m_pos_hallstate = position_get_hall_state();
+
+  m_pos_direction = position_get_direction();
+
+  if (m_pos_direction != DIR_NONE) {
+    m_pos_speed_raw_erpm = speed_raw_erpm(m_pos_speed_timer, m_pos_direction);
+    position_angle_est_reset_to(angle_raw_deg(m_pos_hallstate, m_pos_direction));
+  } else {
+    m_pos_speed_raw_erpm = 0.0f;
+  }
+}
+
+void position_angle_est_reset_to(const float angle_0)
+{
+  m_pos_angle_est_deg = angle_0;
+}
+
+float position_angle_est_update(const float period_s)
+{
+  m_pos_angle_est_deg += position_get_speed_est_erpm() * RPM_TO_DEGPS * period_s ;
+
+  return m_pos_angle_est_deg;
+}
+
+float position_get_angle_est_deg(void)
+{
+  return m_pos_angle_est_deg;
+}
+
+float position_get_speed_est_erpm(void)
+{
+  return m_pos_speed_raw_erpm;
 }
 
 void TIM4_IRQHandler(void)
 {
   /* Input capture (xor of hall sensor):
-   * Calculate speed! */
+   * Determine current position and calculate speed! */
   if (__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_CC1) && \
       __HAL_TIM_GET_IT_SOURCE(&TIMhandle, TIM_IT_CC1)) {
     __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_IT_CC1);
 
-    hall_period_update(&TIMhandle);
+    angle_and_speed_update(&TIMhandle);
+
+    __HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_CC2);
   }
 
   /* Output compare is creating a pulse delayed from the input capture event:
@@ -170,6 +241,8 @@ void TIM4_IRQHandler(void)
     __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_IT_CC2);
 
     hall_commutation();
+
+    __HAL_TIM_DISABLE_IT(&TIMhandle, TIM_IT_CC2);
   }
 }
 
@@ -249,14 +322,4 @@ void position_map_hall_state_to_angle(const uint8_t hall_state, const float angl
 pos_direction_t position_get_direction(void)
 {
   return hall_state_to_direction[hallstate_prev][m_pos_hallstate];
-}
-
-float position_get_angle_est(void)
-{
-  return hall_state_to_angle_map_cw[position_get_hall_state()];
-}
-
-float position_get_speed_est(void)
-{
-  return 0.0;
 }
