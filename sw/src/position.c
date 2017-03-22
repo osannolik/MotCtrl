@@ -10,6 +10,7 @@
 
 #include "calmeas.h"
 
+#define NUMBER_OF_COMMUTATIONS (6u)
 #define ANGLE_UNDEFINED (-1.0f)
  
 /* Measurements */
@@ -21,8 +22,9 @@ CALMEAS_SYMBOL(uint32_t, m_pos_speed_timer, 0, "");
 #define CALMEAS_TYPECODE_pos_direction_t   CALMEAS_TYPECODE_uint8_t
 #define CALMEAS_MEMSEC_pos_direction_t     CALMEAS_MEMSEC_uint8_t
 CALMEAS_SYMBOL(pos_direction_t, m_pos_direction, DIR_NONE, "");
-CALMEAS_SYMBOL(float, m_pos_speed_raw_erpm, 0.0f, "");
 CALMEAS_SYMBOL(float, m_pos_angle_est_deg, 0.0f, "");
+CALMEAS_SYMBOL(float, m_pos_speed_raw_erpm, 0.0f, "");
+CALMEAS_SYMBOL(float, m_pos_speed_est_erpm, 0.0f, "");
 
 /* Parameters */
 CALMEAS_SYMBOL(float, p_commutation_delay, POS_HALL_COMMUTATION_DELAY_PERC, "");
@@ -35,6 +37,7 @@ static pos_direction_t hall_state_to_direction[POS_NUMBER_OF_HALL_STATES][POS_NU
 static TIM_HandleTypeDef TIMhandle;
 static uint8_t hallstate_prev = DIR_NONE;
 static float speed_timer_resolution_s;
+static float speed_raw_per_commutation[NUMBER_OF_COMMUTATIONS];
 
 int position_init(void)
 {
@@ -103,7 +106,9 @@ int position_init(void)
 
   HAL_TIMEx_HallSensor_Start_IT(&TIMhandle);
   //__HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_CC2);
-  //__HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_UPDATE);
+
+  TIMhandle.Instance->CR1 |= 0x4u; // Only counter overflow/underflow generates an update interrupt
+  __HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_UPDATE);
 
   NVIC_SetPriority(TIM4_IRQn, HALL_IRQ_PRIO);
   NVIC_EnableIRQ(TIM4_IRQn);
@@ -117,6 +122,10 @@ int position_init(void)
 
     hall_state_to_angle_map_cw[i] = ANGLE_UNDEFINED;
     hall_state_to_angle_map_ccw[i] = ANGLE_UNDEFINED;
+  }
+
+  for (i=0; i<NUMBER_OF_COMMUTATIONS; i++) {
+    speed_raw_per_commutation[i] = 0.0f;
   }
 
   return 0;
@@ -148,6 +157,10 @@ static void hall_commutation(void)
 
 static float speed_raw_erpm(const uint32_t speed_timer, const pos_direction_t direction)
 {
+  if (speed_timer == 0.0f) {
+    return 0.0f;
+  }
+
   float speed_raw = 10.0f / ((float) speed_timer * speed_timer_resolution_s);
 
   if (direction == DIR_CCW) {
@@ -197,6 +210,29 @@ static void angle_and_speed_update(TIM_HandleTypeDef * const htim)
   } else {
     m_pos_speed_raw_erpm = 0.0f;
   }
+
+  position_speed_est_update(m_pos_speed_raw_erpm);
+
+  m_pos_speed_est_erpm = position_get_speed_est_erpm();
+}
+
+void position_speed_est_reset(void)
+{
+  uint8_t c = 0;
+  for (c=0; c<NUMBER_OF_COMMUTATIONS; c++) {
+    speed_raw_per_commutation[c] = 0.0f;
+  }
+}
+
+void position_speed_est_update(const float speed_raw)
+{
+  static uint8_t c = 0;
+
+  speed_raw_per_commutation[c] = speed_raw;
+
+  if (++c >= NUMBER_OF_COMMUTATIONS) {
+    c = 0;
+  }
 }
 
 void position_angle_est_reset_to(const float angle_0)
@@ -218,7 +254,14 @@ float position_get_angle_est_deg(void)
 
 float position_get_speed_est_erpm(void)
 {
-  return m_pos_speed_raw_erpm;
+  float speed_est = 0.0f;
+
+  uint8_t c;
+  for (c=0; c<NUMBER_OF_COMMUTATIONS; c++) {
+    speed_est += speed_raw_per_commutation[c];
+  }
+
+  return speed_est/((float) NUMBER_OF_COMMUTATIONS);
 }
 
 void TIM4_IRQHandler(void)
@@ -243,6 +286,16 @@ void TIM4_IRQHandler(void)
     hall_commutation();
 
     __HAL_TIM_DISABLE_IT(&TIMhandle, TIM_IT_CC2);
+  }
+
+  /* Input capture timer has overflowed, assume speed is zero */
+  if(__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_UPDATE) && \
+     __HAL_TIM_GET_IT_SOURCE(&TIMhandle, TIM_IT_UPDATE)) {
+    __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_FLAG_UPDATE);
+
+    position_speed_est_reset();
+    m_pos_speed_est_erpm = position_get_speed_est_erpm();
+    m_pos_speed_raw_erpm = 0.0f;
   }
 }
 

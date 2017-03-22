@@ -70,7 +70,7 @@ void application_task(void *p)
   uint32_t task_period_ms;
 
   const uint32_t modes_period_ms = 10u;
-  const uint32_t bldc_period_ms = 1u; //5u;
+  const uint32_t bldc_period_ms = 5u;
 
   task_period_ms = bldc_period_ms;
   lcm_ms = lcm(task_period_ms, bldc_period_ms);
