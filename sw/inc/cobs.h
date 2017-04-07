@@ -17,10 +17,10 @@
  * it may add floor(n/254) additional bytes to the encoded packet size.
  * Hence, by setting data len to max 253, the stuffing size is always 1 byte. 
  */
-#define COBS_FRAME_LEN_MAX (254)
-#define COBS_DATA_LEN_MAX (253)
-#define COBS_OVERHEAD_MAX (1) // Use data len 253 byte maximum
 
+#define COBS_DATA_LEN_MAX    (253)
+#define COBS_OVERHEAD        (1) // Use data len 253 byte maximum
+#define COBS_ENCODED_LEN_MAX (COBS_DATA_LEN_MAX+COBS_OVERHEAD)
 
 uint8_t * cobs_Encode(const uint8_t *pData, uint32_t len, uint8_t *dst);
 uint8_t cobs_Decode(const uint8_t *pCoded, uint32_t len, uint8_t *pData);

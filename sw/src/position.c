@@ -326,13 +326,15 @@ float wrap_to_range(const float low, const float high, float x)
   /* Wrap x into interval [low, high) */
   /* Assumes high > low */
 
-  if (high > low) {
+  const float range = high - low;
+
+  if (range > 0.0f) {
     while (x >= high) {
-      x -= (high - low);
+      x -= range;
     }
 
     while (x < low) {
-      x += (high - low);
+      x += range;
     }
   } else {
     x = low;

@@ -10,6 +10,10 @@
 
 #include "stm32f4xx.h"
 #include "com.h"
+#include "rt_kernel.h"
+
+#define _CALMEAS_ENTER_CRITICAL() rt_enter_critical()
+#define _CALMEAS_EXIT_CRITICAL()  rt_exit_critical()
 
 // TODO: Linker variables, all not actually needed
 extern uint32_t _smeas_hdr;
@@ -118,16 +122,7 @@ typedef enum {
  */
 #define CALMEAS_SYMBOL_BY_ADDRESS(type, name, address, desc) calmeas_meta_t calmeas_meta_ ## name CALMEAS_MEMSEC_META = {CALMEAS_TYPECODE(type), #name, address, desc}
 
-int calmeas_init();
-int calmeas_send_meas_all();
-int calmeas_send_raster_periods();
-int calmeas_send_meas_meta();
-int calmeas_send_symbol_name(com_message_t *msg_request);
-int calmeas_send_symbol_description(com_message_t *msg_request);
-uint32_t calmeas_update_raster_buffer(uint8_t raster);
-int calmeas_send_raster(uint8_t raster);
-int calmeas_set_raster(com_message_t *msg);
-int calmeas_handler();
-uint8_t calmeas_get_measurement(uint8_t *to_address, calmeas_meta_t* meta);
+int calmeas_init(void);
+int calmeas_handler(void);
 
 #endif /* CALMEAS_H_ */

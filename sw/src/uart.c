@@ -7,118 +7,73 @@
 
 #include "stm32f4xx_hal.h"
 #include "uart.h"
-#include "queue.h"
 #include "com.h"
 
 
 #define MAX(X,Y) ((X)>=(Y)?(X):(Y))
 
+static int uart_init_peripheral(void);
+static int uart_init_io(void);
 
 static uart_DataTypeDef uart_data = UART_DATA_INIT;
 
-// Peripheral data
+/* Peripheral data */
 static UART_HandleTypeDef UARThandle;
-static DMA_HandleTypeDef DMAhandle_TX, DMAhandle_RX;
+static DMA_HandleTypeDef  DMAhandle_RX;
+static DMA_HandleTypeDef  DMAhandle_TX;
 
-// Rx data
-static volatile uint8_t uart_DecodeBufRx[COBS_FRAME_LEN_MAX];
-static volatile queue_t uart_ByteBufRx;
+/* Buffers */
+static uint8_t uart_decode_buffer[RX_BUF_LEN];
+static volatile uint8_t dma_buffer_rx[RX_BUF_LEN];
+static volatile uint8_t dma_buffer_tx[TX_BUF_LEN];
 
-// Tx Data
-static volatile uint8_t uart_ByteBufTx[UART_BUF_TX_LEN];
-
-static volatile uint8_t uart_is_parsing_buf_rx = 0;
-
-static int uart_delimiter_found();
-
-static int uart_delimiter_found()
-{
-  // Stub
-  // Call com-parser from here for asynch rx
-  return 0;
-}
-
-uint32_t uart_receive_data(uint8_t **data)
-{
-  uint32_t len;
-  uint8_t d;  
-
-  uart_is_parsing_buf_rx = 1;
-
-  while (!queue_IsEmpty(&uart_ByteBufRx)) {
-
-    len = 0;
-    d = ~UART_FRAME_DELIMITER;  // Something != delimiter
-    
-    // Peek the received bytes and try to find packet delimiter
-    do {
-      if (queue_Peek(&uart_ByteBufRx, len, &d))
-        return 0;
-      uart_DecodeBufRx[len++] = d;
-    } while ((d != UART_FRAME_DELIMITER) && (len < COBS_FRAME_LEN_MAX));
-
-    if ((d == UART_FRAME_DELIMITER) && (len >= COM_HDR_SIZE + COBS_OVERHEAD_MAX + UART_FRAME_DELIMITER_LEN)) {
-      // Delimiter found but we should not expect frame with 
-      // size less than packet header + overhead byte
-      queue_Flush(&uart_ByteBufRx, len);
-      *data = (uint8_t *) uart_DecodeBufRx;
-      return (cobs_Decode((uint8_t *) uart_DecodeBufRx, len-UART_FRAME_DELIMITER_LEN, (uint8_t *) uart_DecodeBufRx) - COBS_OVERHEAD_MAX);
-      
-    } else if ((len == COBS_FRAME_LEN_MAX) || (len<COM_HDR_SIZE + COBS_OVERHEAD_MAX + UART_FRAME_DELIMITER_LEN)) {
-      // Too many delimiters sent, or a lot of crap?
-      queue_Flush(&uart_ByteBufRx, len);
-    } 
-
-  }
-
-  uart_is_parsing_buf_rx = 0;
-
-  return 0;
-}
 
 uint32_t uart_send_data(uint8_t* pData, uint16_t len)
 {
   uint8_t *bufEntry;
   int32_t sent_data_len;
 
-  // Wait until previous tx is done (buffer might currently be accessed by DMA)
+  /* Wait until previous tx is done (buffer might currently be accessed by DMA) */
   //uint32_t tickstart = HAL_GetTick();
   //while ((uart_data.TxState == UART_TRANSMITTING));// && ((HAL_GetTick() - tickstart) < UART_TXDATA_TIMEOUT_MS));
 
-  if (uart_data.TxState == UART_TRANSMITTING)
+  if (uart_data.TxState == UART_TRANSMITTING) {
     return 0;
+  }
 
-  if (len > COBS_DATA_LEN_MAX)
+  if (len > COBS_DATA_LEN_MAX) {
     len = COBS_DATA_LEN_MAX;
+  }
 
-  bufEntry = cobs_Encode((uint8_t *) pData, len, (uint8_t *) uart_ByteBufTx);
+  bufEntry = cobs_Encode((uint8_t *) pData, len, (uint8_t *) dma_buffer_tx);
   *bufEntry++ = UART_FRAME_DELIMITER;
 
-  sent_data_len = uart_send_bytes((uint8_t *) uart_ByteBufTx, (uint16_t) (bufEntry - uart_ByteBufTx));
-  sent_data_len -= (bufEntry - uart_ByteBufTx - len); // subtract overhead
+  sent_data_len = uart_send_bytes((uint8_t *) dma_buffer_tx, (uint16_t) (bufEntry - dma_buffer_tx));
+  sent_data_len -= (bufEntry - dma_buffer_tx - len); // subtract overhead
 
   return (uint32_t) MAX(0, sent_data_len);
 }
 
 uint32_t uart_send_bytes(uint8_t* pData, uint16_t len)
 {
-  // Wait until previous tx is done
+  /* Wait until previous tx is done */
   uint32_t tickstart = HAL_GetTick();
   while ((uart_data.TxState == UART_TRANSMITTING) && ((HAL_GetTick() - tickstart) < UART_TXDATA_TIMEOUT_MS));
 
-  if (uart_data.TxState == UART_TRANSMITTING)
+  if (uart_data.TxState == UART_TRANSMITTING) {
     return 0;
+  }
 
   __HAL_DMA_DISABLE(&DMAhandle_TX);
 
-  // Set source address and buffer length
+  /* Set source address and buffer length */
   DMAhandle_TX.Instance->M0AR = (uint32_t) pData;
   DMAhandle_TX.Instance->NDTR = (uint16_t) len;
   
-  // Enable transfer complete interrupt
+  /* Enable transfer complete interrupt */
   __HAL_DMA_ENABLE_IT(&DMAhandle_TX, DMA_IT_TC);
 
-  // Enable UART as DMA enabled transmitter
+  /* Enable UART as DMA enabled transmitter */
   UARThandle.Instance->CR3 |= USART_CR3_DMAT;
   
   uart_data.TxState = UART_TRANSMITTING;
@@ -127,16 +82,91 @@ uint32_t uart_send_bytes(uint8_t* pData, uint16_t len)
   return (uint32_t) len;
 }
 
+static inline uint32_t bytes_in_dma_buffer_rx(const uint32_t i)
+{
+  const uint32_t end_idx = RX_BUF_LEN - DMAhandle_RX.Instance->NDTR;
+
+  if (end_idx >= i) {
+    return end_idx - i;
+  } else {
+    return RX_BUF_LEN - i + end_idx;
+  }
+}
+
+uint32_t uart_receive_data(uint8_t **data)
+{
+  /* TODO: Detect buffer overrun.
+   * TODO: Check that the frame length is reasonable. */
+
+  static uint32_t i_prev = 0;
+  uint32_t i = i_prev;
+  uint32_t i_decode = 0;
+  uint32_t decoded_len = 0;
+
+  *data = (uint8_t *) uart_decode_buffer;
+
+  while (bytes_in_dma_buffer_rx(i) > 0) {
+
+    /* Find a delimiter and copy the bytes into the decode buffer. */
+    while (dma_buffer_rx[i] != UART_FRAME_DELIMITER) {
+      
+      uart_decode_buffer[i_decode++] = dma_buffer_rx[i];
+
+      i = (i + 1) % RX_BUF_LEN;
+
+      if (bytes_in_dma_buffer_rx(i) == 0) {
+        /* Oops, no more data: 
+         * An incomplete frame was found. 
+         * Just return whatever got decoded and try again next time. */
+        return decoded_len;
+      }
+
+    }
+
+    decoded_len += cobs_Decode((uint8_t *) &uart_decode_buffer[decoded_len], \
+                               i_decode - decoded_len, \
+                               (uint8_t *) &uart_decode_buffer[decoded_len]);
+    decoded_len -= UART_FRAME_DELIMITER_LEN;
+
+    /* Continue filling the decode buffer right after the decoded data. */
+    i_decode = decoded_len;
+
+    /* Keep track of index to the next byte to be processed,
+     * but skip the frame delimiter it currently points to. */
+    i = (i + 1) % RX_BUF_LEN;
+    i_prev = i;
+  }
+
+  return decoded_len;
+}
+
+void DMA2_Stream1_IRQHandler(void)
+{
+  if(DMA2->LISR & DMA_FLAG_TCIF1_5) {
+    /* The current buffer is completely filled */
+    DMA2->LIFCR = DMA_FLAG_TCIF1_5;
+  }
+}
+
+void DMA2_Stream7_IRQHandler(void)
+{
+  if(DMA2->HISR & DMA_FLAG_TCIF3_7) {
+    /* When the DMA has moved all data to peripheral */
+    DMA2->HIFCR = DMA_FLAG_TCIF3_7;
+    uart_data.TxState = UART_IDLE;
+  }
+}
+
 int uart_init()
 {
   int err = 0;
 
   err |= uart_init_io();
   err |= uart_init_peripheral();
-  err |= queue_Init(&uart_ByteBufRx);
 
-  if (err)
+  if (err) {
     return -1;
+  }
 
   uart_data.TxState = UART_IDLE;
   uart_data.isInit = 1;
@@ -144,7 +174,32 @@ int uart_init()
   return err;
 }
 
-int uart_init_peripheral()
+static int uart_init_io(void)
+{
+  GPIO_InitTypeDef GPIOinitstruct;
+
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+
+  /* TX */
+  GPIOinitstruct.Pin = UART_TX_PIN;
+  GPIOinitstruct.Speed = GPIO_SPEED_HIGH;
+  GPIOinitstruct.Pull = GPIO_PULLUP;
+  GPIOinitstruct.Mode = GPIO_MODE_AF_PP;
+  GPIOinitstruct.Alternate = GPIO_AF8_USART6;
+  HAL_GPIO_Init(UART_TX_PORT, &GPIOinitstruct);
+
+  /* RX */
+  GPIOinitstruct.Pin = UART_RX_PIN;
+  GPIOinitstruct.Speed = GPIO_SPEED_HIGH;
+  GPIOinitstruct.Pull = GPIO_PULLUP;
+  GPIOinitstruct.Mode = GPIO_MODE_AF_PP;
+  GPIOinitstruct.Alternate = GPIO_AF8_USART6;
+  HAL_GPIO_Init(UART_RX_PORT, &GPIOinitstruct);
+
+  return 0;
+}
+
+static int uart_init_peripheral(void)
 {
   __HAL_RCC_USART6_CLK_ENABLE();
   __HAL_RCC_DMA2_CLK_ENABLE();
@@ -173,118 +228,43 @@ int uart_init_peripheral()
 
   DMAhandle_RX                          = DMAhandle_TX;
   DMAhandle_RX.Instance                 = DMA2_Stream1;
+  DMAhandle_RX.Init.Channel             = DMA_CHANNEL_5;
   DMAhandle_RX.Init.Direction           = DMA_PERIPH_TO_MEMORY;
   DMAhandle_RX.Init.Mode                = DMA_CIRCULAR;
 
   UARThandle.hdmatx = &DMAhandle_TX;
-  //UARThandle.hdmarx = &DMAhandle_RX;
+  UARThandle.hdmarx = &DMAhandle_RX;
   HAL_UART_DeInit(&UARThandle);
   HAL_UART_Init(&UARThandle);
 
-  UART_INSTANCE->BRR = (5u << 4u) | (5u); // Baudrate = 2000000 with SYSCLK=180MHz,
-                                          // HAL is not very good at figuring this number out...
+  UART_INSTANCE->BRR = (5u << 4u) | (5u); /* Baudrate = 2000000 with SYSCLK=180MHz,
+                                           * HAL is not very good at figuring this number out... */
 
   HAL_DMA_DeInit(&DMAhandle_TX);
   HAL_DMA_Init(&DMAhandle_TX);
-  //HAL_DMA_DeInit(&DMAhandle_RX);
-  //HAL_DMA_Init(&DMAhandle_RX);
+  HAL_DMA_DeInit(&DMAhandle_RX);
+  HAL_DMA_Init(&DMAhandle_RX);
 
-  //HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_2);
-  NVIC_SetPriority(DMA2_Stream7_IRQn, UART_IRQ_PRIO);
+  NVIC_SetPriority(DMA2_Stream7_IRQn, UART_DMA_TX_IRQ_PRIO);
   HAL_NVIC_EnableIRQ(DMA2_Stream7_IRQn);
-  //HAL_NVIC_SetPriority(DMA1_Stream2_IRQn, 0, 0);
-  //HAL_NVIC_EnableIRQ(DMA1_Stream2_IRQn);
+  NVIC_SetPriority(DMA2_Stream1_IRQn, UART_DMA_RX_IRQ_PRIO);
+  HAL_NVIC_EnableIRQ(DMA2_Stream1_IRQn);
 
-
-  // Use uart data register as peripheral destination for TX
+  /* Use uart data register as peripheral destination for TX */
   DMAhandle_TX.Instance->PAR = (uint32_t) &(UARThandle.Instance->DR);
 
-  // Setup uart module to irq when data was received
-  NVIC_SetPriority(USART6_IRQn, UART_IRQ_PRIO);
-  __HAL_UART_ENABLE_IT(&UARThandle, UART_IT_RXNE);
-  HAL_NVIC_EnableIRQ(USART6_IRQn);
+  /* Set source and destination address and buffer length */
+  DMAhandle_RX.Instance->NDTR = RX_BUF_LEN;
+  DMAhandle_RX.Instance->PAR  = (uint32_t) &(UARThandle.Instance->DR);
+  DMAhandle_RX.Instance->M0AR = (uint32_t) dma_buffer_rx;
 
-/*
-  // Set source and destination address and buffer length
-  DMAhandle_RX.Instance->NDTR = 16;
-  DMAhandle_RX.Instance->PAR = (uint32_t) &(UARThandle.Instance->DR);
-  DMAhandle_RX.Instance->M0AR = (uint32_t) uart_DecodeBufRx;
-
-  // Enable transfer complete interrupt
-  __HAL_DMA_ENABLE_IT(&DMAhandle_RX, DMA_IT_TC);
-
-  // Enable UART as DMA enabled receiver
+  /* Enable UART as DMA enabled receiver */
   UARThandle.Instance->CR3 |= USART_CR3_DMAR;
 
+  /* Enable transfer complete interrupt */
+  __HAL_DMA_ENABLE_IT(&DMAhandle_RX, DMA_IT_TC);
+
   __HAL_DMA_ENABLE(&DMAhandle_RX);
-*/
 
   return 0;
 }
-
-static uint32_t rx_frame_len = 0;
-
-void USART6_IRQHandler()
-{
-  uint8_t d;
-
-  if(__HAL_UART_GET_FLAG(&UARThandle, UART_FLAG_ORE)) {
-    __HAL_UART_CLEAR_OREFLAG(&UARThandle);
-
-    if (!uart_is_parsing_buf_rx) {
-      queue_Flush(&uart_ByteBufRx, rx_frame_len);
-    }
-
-  } else if(__HAL_UART_GET_FLAG(&UARThandle, UART_FLAG_RXNE)) {
-    d = (uint8_t) UART_INSTANCE->DR;
-    queue_Push(&uart_ByteBufRx, d);
-    rx_frame_len++;
-    if (d == UART_FRAME_DELIMITER) {
-      uart_delimiter_found();
-      rx_frame_len = 0;
-    }
-  }
-}
-
-int uart_init_io()
-{
-  GPIO_InitTypeDef GPIOinitstruct;
-
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-
-  // TX
-  GPIOinitstruct.Pin = UART_TX_PIN;
-  GPIOinitstruct.Speed = GPIO_SPEED_HIGH;
-  GPIOinitstruct.Pull = GPIO_PULLUP;
-  GPIOinitstruct.Mode = GPIO_MODE_AF_PP;
-  GPIOinitstruct.Alternate = GPIO_AF8_USART6;
-  HAL_GPIO_Init(UART_TX_PORT, &GPIOinitstruct);
-
-  // RX
-  GPIOinitstruct.Pin = UART_RX_PIN;
-  GPIOinitstruct.Speed = GPIO_SPEED_HIGH;
-  GPIOinitstruct.Pull = GPIO_PULLUP;
-  GPIOinitstruct.Mode = GPIO_MODE_AF_PP;
-  GPIOinitstruct.Alternate = GPIO_AF8_USART6;
-  HAL_GPIO_Init(UART_RX_PORT, &GPIOinitstruct);
-
-  return 0;
-}
-
-void DMA2_Stream7_IRQHandler(void)
-{
-  // When the DMA has moved all data to peripheral
-  if(DMA2->HISR & DMA_FLAG_TCIF3_7) {
-    DMA2->HIFCR = DMA_FLAG_TCIF3_7;
-    uart_data.TxState = UART_IDLE;
-  }
-}
-
-/*
-void DMA1_Stream2_IRQHandler(void)
-{
-  // When the DMA wraps around 
-  if(DMA1->LISR & DMA_FLAG_TCIF2_6)
-    DMA1->LIFCR = DMA_FLAG_TCIF2_6;
-}
-*/

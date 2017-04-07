@@ -50,5 +50,5 @@ uint8_t cobs_Decode(const uint8_t *pCoded, uint32_t len, uint8_t *pData)
       *pData++ = 0;
   }
 
-  return (uint8_t) (pData-init_pData); // returned data length includes delimiter 0
+  return (uint8_t) (pData-init_pData);
 }
