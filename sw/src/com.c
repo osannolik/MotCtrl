@@ -180,6 +180,11 @@ int com_put_message(com_message_t *msg)
   {
     queue_Push_range(buffer, header, COM_PACKET_OVERHEAD_SIZE);
     queue_Push_range(buffer, data, msg->len);
+#if (COM_CRC_LEN_TX > 0)
+    uint8_t crc = crc8_block(&msg->header.status, sizeof(msg->header.status));
+    crc = crc8(crc, data, msg->len);
+    queue_Push(buffer, crc);
+#endif
   }
   _COM_EXIT_CRITICAL();
 

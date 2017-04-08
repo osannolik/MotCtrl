@@ -30,6 +30,7 @@
 #define COM_BUFFER_RX_SIZE        (256)
 
 #define COM_CRC_LEN_RX            (1)
+#define COM_CRC_LEN_TX            (0)
 
 typedef enum {
   COM_ERROR = 0,
