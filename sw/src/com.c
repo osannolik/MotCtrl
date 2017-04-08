@@ -1,7 +1,7 @@
 #include "com.h"
 #include "uart.h"
 
-#if (COM_CRC_LEN_RX > 0)
+#if (COM_CRC_LEN_RX > 0 || COM_CRC_LEN_TX > 0)
 #include "crc8.h"
 #endif
 
