@@ -142,17 +142,17 @@ uint32_t uart_receive_data(uint8_t **data)
 
 void DMA2_Stream1_IRQHandler(void)
 {
-  if(DMA2->LISR & DMA_FLAG_TCIF1_5) {
+  if(DMA_INSTANCE->LISR & DMA_FLAG_TCIF1_5) {
     /* The current buffer is completely filled */
-    DMA2->LIFCR = DMA_FLAG_TCIF1_5;
+    DMA_INSTANCE->LIFCR = DMA_FLAG_TCIF1_5;
   }
 }
 
 void DMA2_Stream7_IRQHandler(void)
 {
-  if(DMA2->HISR & DMA_FLAG_TCIF3_7) {
+  if(DMA_INSTANCE->HISR & DMA_FLAG_TCIF3_7) {
     /* When the DMA has moved all data to peripheral */
-    DMA2->HIFCR = DMA_FLAG_TCIF3_7;
+    DMA_INSTANCE->HIFCR = DMA_FLAG_TCIF3_7;
     uart_data.TxState = UART_IDLE;
   }
 }

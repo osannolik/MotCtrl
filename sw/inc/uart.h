@@ -13,6 +13,7 @@
 
 #define UART_TXDATA_TIMEOUT_MS    (1)
 #define UART_INSTANCE             USART6
+#define DMA_INSTANCE              DMA2
 #define UART_BAUDRATE             (2000000)
 #define UART_DMA_RX_IRQ_PRIO      (4u)
 #define UART_DMA_TX_IRQ_PRIO      (5u)
