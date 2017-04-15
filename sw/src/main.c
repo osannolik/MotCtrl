@@ -70,7 +70,8 @@ void application_task(void *p)
   uint32_t task_period_ms;
 
   const uint32_t modes_period_ms = 8u;
-  const uint32_t bldc_period_ms = 4u;
+  const uint32_t bldc_period_ms  = 4u;
+  const uint32_t board_period_ms = 2u;
 
   task_period_ms = bldc_period_ms;
   lcm_ms = lcm(task_period_ms, bldc_period_ms);
@@ -78,11 +79,18 @@ void application_task(void *p)
   task_period_ms = MIN(task_period_ms, modes_period_ms);
   lcm_ms = lcm(lcm_ms, modes_period_ms);
 
+  task_period_ms = MIN(task_period_ms, board_period_ms);
+  lcm_ms = lcm(lcm_ms, board_period_ms);
+
   static uint32_t task_ticker = 0;
 
   while (1) {
 
     /* Periodically run step functions */
+
+    if (0u == (task_ticker % board_period_ms)) {
+      board_step(board_period_ms);
+    }
 
     if (0u == (task_ticker % modes_period_ms)) {
       modes_step(modes_period_ms);

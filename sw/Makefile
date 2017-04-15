@@ -64,13 +64,14 @@ INCDIRS += ./$(CMSISINCDIR)
 #### Compiler and linker flags ####
 CFLAGS = $(addprefix -I,$(INCDIRS))
 #CFLAGS += -D__FPU_USED
-CFLAGS += -Wall -MMD -MP -g
-CFLAGS += -O0
+CFLAGS += -Wall -Wdouble-promotion -MMD -MP -g
+CFLAGS += -Og
 CFLAGS += -fsingle-precision-constant -fno-common -fno-builtin #-ffunction-sections -fdata-sections
-CFLAGS += -mthumb -mfloat-abi=hard -mcpu=cortex-m4 -mthumb-interwork
+CFLAGS += -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mthumb-interwork
 #  add -mfix-cortex-m3-ldrd for cortex-m3
 
-LFLAGS = -nostartfiles -nostdlib -gc-sections -Tstm32.ld -L$(LIB_PREFIX) -lm -lc -Xlinker -Map=$(OUTMAP)
+LFLAGS = -nostartfiles -gc-sections -Tstm32.ld -L$(LIB_PREFIX) -lm -lc -Xlinker -Map=$(OUTMAP)
+#LFLAGS += -nostdlib
 
 #### Rules ####
 .PHONY: clean all

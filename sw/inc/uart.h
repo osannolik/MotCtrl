@@ -48,7 +48,5 @@ uint32_t uart_receive_data(uint8_t **data);
 uint32_t uart_send_data(uint8_t* pData, uint16_t len);
 uint32_t uart_send_bytes(uint8_t* pData, uint16_t len);
 int uart_init();
-void DMA1_Stream4_IRQHandler(void);
-void DMA1_Stream2_IRQHandler(void);
 
 #endif /* UART_H_ */

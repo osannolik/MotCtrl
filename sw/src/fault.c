@@ -8,15 +8,6 @@
 #include "fault.h"
 #include "bldc.h"
 
-static volatile uint32_t r0;
-static volatile uint32_t r1;
-static volatile uint32_t r2;
-static volatile uint32_t r3;
-static volatile uint32_t r12;
-static volatile uint32_t lr;
-static volatile uint32_t pc;
-static volatile uint32_t psr;
-
 void fault_general_failure(void)
 {
   while (1) {
@@ -28,6 +19,16 @@ void TIM1_BRK_TIM9_IRQHandler(TIM_HandleTypeDef *htim)
 {
   fault_general_failure();
 }
+
+#if 0
+static volatile uint32_t r0;
+static volatile uint32_t r1;
+static volatile uint32_t r2;
+static volatile uint32_t r3;
+static volatile uint32_t r12;
+static volatile uint32_t lr;
+static volatile uint32_t pc;
+static volatile uint32_t psr;
 
 void fault_get_reg_from_stack(uint32_t *stack_address)
 {
@@ -55,6 +56,12 @@ inline void fault_get_stack_state(void)
     " handler2_address_const: .word fault_get_reg_from_stack \n"
   );
 }
+
+#else
+inline void fault_get_stack_state(void) {
+
+}
+#endif
 
 /**
   * @brief   This function handles NMI exception.

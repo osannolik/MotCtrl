@@ -18,7 +18,5 @@ void UsageFault_Handler(void);
 void DebugMon_Handler(void);
 
 void fault_general_failure(void);
-void fault_get_reg_from_stack(uint32_t *stack_address);;
-inline void fault_get_stack_state(void);
 
 #endif /* FAULT_H_ */
