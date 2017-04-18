@@ -33,12 +33,13 @@ static uint32_t * const adc_debug_variables[6] = {
     &m_adc_emf_b,
     &m_adc_emf_c
 };
+
 static ADC_HandleTypeDef AdcHandle_1;
 static ADC_HandleTypeDef AdcHandle_2;
 static ADC_HandleTypeDef AdcHandle_3;
 static DMA_HandleTypeDef DmaHandle;
 
-static uint32_t measurement_buffer[ADC_NUMBER_OF_MEAS];
+static volatile uint16_t measurement_buffer[ADC_NUMBER_OF_MEAS];
 
 int adc_init()
 {
@@ -88,15 +89,36 @@ int adc_init()
   __HAL_RCC_DMA2_CLK_ENABLE();
 
 
+  __HAL_RCC_TIM2_CLK_ENABLE();
+
+  const uint32_t reg_conv_divider_tot = 2u * HAL_RCC_GetPCLK1Freq()/ADC_REGCONV_SAMPLE_FREQ_HZ;
+
+  TIM_HandleTypeDef TIMhandle;
+  TIMhandle.Instance               = TIM2;
+  TIMhandle.Init.Period            = reg_conv_divider_tot / ADC_REGCONV_PRESCALER;
+  TIMhandle.Init.Prescaler         = ADC_REGCONV_PRESCALER - 1;
+  TIMhandle.Init.ClockDivision     = 0;
+  TIMhandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
+  TIMhandle.Init.RepetitionCounter = 0;
+
+  HAL_TIM_Base_Init(&TIMhandle);
+
+  TIM_MasterConfigTypeDef TIMMasterConfig;
+  TIMMasterConfig.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  TIMMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+
+  HAL_TIMEx_MasterConfigSynchronization(&TIMhandle, &TIMMasterConfig);
+
+
   AdcHandle_1.Instance                    = ADC1;
   AdcHandle_1.Init.ClockPrescaler         = ADC_CLOCKPRESCALER_PCLK_DIV2;
   AdcHandle_1.Init.Resolution             = ADC_RESOLUTION12b;
   AdcHandle_1.Init.ScanConvMode           = ENABLE;
-  AdcHandle_1.Init.ContinuousConvMode     = ENABLE;
+  AdcHandle_1.Init.ContinuousConvMode     = DISABLE;
   AdcHandle_1.Init.DiscontinuousConvMode  = DISABLE;
   AdcHandle_1.Init.NbrOfDiscConversion    = 0;
-  AdcHandle_1.Init.ExternalTrigConvEdge   = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  AdcHandle_1.Init.ExternalTrigConv       = ADC_EXTERNALTRIG3_T2_CC4;
+  AdcHandle_1.Init.ExternalTrigConvEdge   = ADC_EXTERNALTRIGCONVEDGE_RISING;
+  AdcHandle_1.Init.ExternalTrigConv       = ADC_EXTERNALTRIGCONV_T2_TRGO;
   AdcHandle_1.Init.DataAlign              = ADC_DATAALIGN_RIGHT;
   AdcHandle_1.Init.NbrOfConversion        = ADC_NUMBER_OF_MEAS;
   AdcHandle_1.Init.DMAContinuousRequests  = ENABLE;
@@ -118,8 +140,8 @@ int adc_init()
   DmaHandle.Init.Direction           = DMA_PERIPH_TO_MEMORY;
   DmaHandle.Init.PeriphInc           = DMA_PINC_DISABLE;
   DmaHandle.Init.MemInc              = DMA_MINC_ENABLE;
-  DmaHandle.Init.PeriphDataAlignment = DMA_PDATAALIGN_WORD;
-  DmaHandle.Init.MemDataAlignment    = DMA_MDATAALIGN_WORD;
+  DmaHandle.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
+  DmaHandle.Init.MemDataAlignment    = DMA_MDATAALIGN_HALFWORD;
   DmaHandle.Init.Mode                = DMA_CIRCULAR;
   DmaHandle.Init.Priority            = DMA_PRIORITY_LOW;
   DmaHandle.Init.FIFOMode            = DMA_FIFOMODE_DISABLE;
@@ -133,9 +155,10 @@ int adc_init()
 
 
   ADC_ChannelConfTypeDef RegularConf;
+  RegularConf.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+
   RegularConf.Channel = ADC_BAT_SENSE_CH;
   RegularConf.Rank = 1 + ADC_BAT_SENSE;
-  RegularConf.SamplingTime = ADC_SAMPLETIME_112CYCLES;
   HAL_ADC_ConfigChannel(&AdcHandle_1, &RegularConf);
 
   RegularConf.Channel = ADC_BOARD_TEMP_CH;
@@ -198,18 +221,23 @@ int adc_init()
 
   HAL_ADC_Start_DMA(&AdcHandle_1, (uint32_t*) measurement_buffer, ADC_NUMBER_OF_MEAS);
 
+  HAL_TIM_Base_Start(&TIMhandle);
+
   return 0;
 }
 
 void ADC_IRQHandler(void)
 {
+  DBG_PAD3_SET;
+
   if(__HAL_ADC_GET_FLAG(&AdcHandle_1, ADC_FLAG_JEOC)) {
-    //DBG_PAD1_TOGGLE;
 
     m_adc_i_a   = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, 1);
     m_adc_emf_a = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, 2);
+
     m_adc_i_b   = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, 1);
     m_adc_emf_b = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, 2);
+
     m_adc_i_c   = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, 1);
     m_adc_emf_c = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, 2);
 
@@ -225,6 +253,8 @@ void ADC_IRQHandler(void)
 
     fault_general_failure();
   }
+
+  DBG_PAD3_RESET;
 }
 
 float adc_get_measurement(adc_measurement_t m)

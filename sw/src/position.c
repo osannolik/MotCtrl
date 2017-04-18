@@ -81,7 +81,7 @@ int position_init(void)
    *   APB1 is the clock source = 2*APB1 (2*45 MHz)
    *   Using a prescaler of 225 and using all 16 bits yields:
    *   - Resolution = 225 / 90 MHz = 2.5 us
-   *   - Time until overflow = 2^16 * 225 * 90 MHz = 0.16384 s
+   *   - Time until overflow = 2^16 * 225 / 90 MHz = 0.16384 s
    * This allows for a speed down to 61 rpm before an overflow occurs.
    * At 10000 rpm, the resolution will be approx 2.5 us * (10000^2)/10 = 25 rpm
    */
@@ -193,7 +193,7 @@ static float angle_raw_deg(const uint8_t hall_state, const pos_direction_t direc
 
 static void angle_and_speed_update(TIM_HandleTypeDef * const htim)
 {
-  DBG_PAD3_TOGGLE;
+  //DBG_PAD3_TOGGLE;
 
   /* Prepare for commutation. Assume we need to wait a factor of the latest hall period */
   m_pos_speed_timer = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1); // Also clears IF
