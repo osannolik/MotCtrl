@@ -6,40 +6,26 @@
  */
 
 #include "adc.h"
-#include "ext.h"
 #include "fault.h"
-#include "pwm.h"
-#include "position.h"
 
-#include "debug.h"
 #include "calmeas.h"
 
-/* Measurements */
-CALMEAS_SYMBOL(uint32_t, m_adc_i_a,   0, "");
-CALMEAS_SYMBOL(uint32_t, m_adc_i_b,   0, "");
-CALMEAS_SYMBOL(uint32_t, m_adc_i_c,   0, "");
-CALMEAS_SYMBOL(uint32_t, m_adc_emf_a, 0, "");
-CALMEAS_SYMBOL(uint32_t, m_adc_emf_b, 0, "");
-CALMEAS_SYMBOL(uint32_t, m_adc_emf_c, 0, "");
 
-/* Parameters */
-CALMEAS_SYMBOL(uint8_t, p_adc_debug_output_sel, 0, "");
-
-static uint32_t * const adc_debug_variables[6] = {
-    &m_adc_i_a,
-    &m_adc_i_b,
-    &m_adc_i_c,
-    &m_adc_emf_a,
-    &m_adc_emf_b,
-    &m_adc_emf_c
-};
+static volatile uint16_t measurement_buffer[ADC_NUMBER_OF_MEAS];
+static void (* new_samples_indication_cb)(void) = NULL;
 
 static ADC_HandleTypeDef AdcHandle_1;
 static ADC_HandleTypeDef AdcHandle_2;
 static ADC_HandleTypeDef AdcHandle_3;
-static DMA_HandleTypeDef DmaHandle;
 
-static volatile uint16_t measurement_buffer[ADC_NUMBER_OF_MEAS];
+/* Measurements */
+CALMEAS_SYMBOL_BY_ADDRESS(uint16_t, m_adc_i_a_raw,   &measurement_buffer[ADC_I_A],   "");
+CALMEAS_SYMBOL_BY_ADDRESS(uint16_t, m_adc_i_b_raw,   &measurement_buffer[ADC_I_B],   "");
+CALMEAS_SYMBOL_BY_ADDRESS(uint16_t, m_adc_i_c_raw,   &measurement_buffer[ADC_I_C],   "");
+CALMEAS_SYMBOL_BY_ADDRESS(uint16_t, m_adc_emf_a_raw, &measurement_buffer[ADC_EMF_A], "");
+CALMEAS_SYMBOL_BY_ADDRESS(uint16_t, m_adc_emf_b_raw, &measurement_buffer[ADC_EMF_B], "");
+CALMEAS_SYMBOL_BY_ADDRESS(uint16_t, m_adc_emf_c_raw, &measurement_buffer[ADC_EMF_C], "");
+
 
 int adc_init()
 {
@@ -120,7 +106,7 @@ int adc_init()
   AdcHandle_1.Init.ExternalTrigConvEdge   = ADC_EXTERNALTRIGCONVEDGE_RISING;
   AdcHandle_1.Init.ExternalTrigConv       = ADC_EXTERNALTRIGCONV_T2_TRGO;
   AdcHandle_1.Init.DataAlign              = ADC_DATAALIGN_RIGHT;
-  AdcHandle_1.Init.NbrOfConversion        = ADC_NUMBER_OF_MEAS;
+  AdcHandle_1.Init.NbrOfConversion        = ADC_NUMBER_OF_REGULAR_MEAS;
   AdcHandle_1.Init.DMAContinuousRequests  = ENABLE;
   AdcHandle_1.Init.EOCSelection           = DISABLE;
 
@@ -134,7 +120,7 @@ int adc_init()
   HAL_ADC_Init(&AdcHandle_2);
   HAL_ADC_Init(&AdcHandle_3);
 
-
+  DMA_HandleTypeDef DmaHandle;
   DmaHandle.Instance                 = DMA2_Stream0;
   DmaHandle.Init.Channel             = DMA_CHANNEL_0;
   DmaHandle.Init.Direction           = DMA_PERIPH_TO_MEMORY;
@@ -158,15 +144,15 @@ int adc_init()
   RegularConf.SamplingTime = ADC_SAMPLETIME_480CYCLES;
 
   RegularConf.Channel = ADC_BAT_SENSE_CH;
-  RegularConf.Rank = 1 + ADC_BAT_SENSE;
+  RegularConf.Rank = ADC_BAT_SENSE_RANK;
   HAL_ADC_ConfigChannel(&AdcHandle_1, &RegularConf);
 
   RegularConf.Channel = ADC_BOARD_TEMP_CH;
-  RegularConf.Rank = 1 + ADC_BOARD_TEMP;
+  RegularConf.Rank = ADC_BOARD_TEMP_RANK;
   HAL_ADC_ConfigChannel(&AdcHandle_1, &RegularConf);
 
   RegularConf.Channel = ADC_CHANNEL_TEMPSENSOR;
-  RegularConf.Rank = 1 + ADC_MCU_TEMP;
+  RegularConf.Rank = ADC_MCU_TEMP_RANK;
   HAL_ADC_ConfigChannel(&AdcHandle_1, &RegularConf);
 
 
@@ -177,32 +163,37 @@ int adc_init()
   InjectionConf.ExternalTrigInjecConvEdge     = ADC_EXTERNALTRIGINJECCONVEDGE_FALLING;
   InjectionConf.InjectedOffset                = 0;
   InjectionConf.InjectedSamplingTime          = ADC_SAMPLETIME_3CYCLES;
-  InjectionConf.InjectedNbrOfConversion       = 2;
+
+  InjectionConf.InjectedNbrOfConversion       = ADC_NUMBER_OF_INJECTED_ADC1;
 
   InjectionConf.InjectedChannel               = ADC_I_A_CH;
-  InjectionConf.InjectedRank                  = 1;
+  InjectionConf.InjectedRank                  = ADC_I_A_RANK;
   HAL_ADCEx_InjectedConfigChannel(&AdcHandle_1, &InjectionConf);
 
   InjectionConf.InjectedChannel               = ADC_EMF_A_CH;
-  InjectionConf.InjectedRank                  = 2;
+  InjectionConf.InjectedRank                  = ADC_EMF_A_RANK;
   HAL_ADCEx_InjectedConfigChannel(&AdcHandle_1, &InjectionConf);
 
   InjectionConf.ExternalTrigInjecConv         = ADC_EXTERNALTRIGINJECCONVEDGE_NONE;
 
+  InjectionConf.InjectedNbrOfConversion       = ADC_NUMBER_OF_INJECTED_ADC2;
+
   InjectionConf.InjectedChannel               = ADC_I_B_CH;
-  InjectionConf.InjectedRank                  = 1;
+  InjectionConf.InjectedRank                  = ADC_I_B_RANK;
   HAL_ADCEx_InjectedConfigChannel(&AdcHandle_2, &InjectionConf);
 
   InjectionConf.InjectedChannel               = ADC_EMF_B_CH;
-  InjectionConf.InjectedRank                  = 2;
+  InjectionConf.InjectedRank                  = ADC_EMF_B_RANK;
   HAL_ADCEx_InjectedConfigChannel(&AdcHandle_2, &InjectionConf);
 
+  InjectionConf.InjectedNbrOfConversion       = ADC_NUMBER_OF_INJECTED_ADC3;
+
   InjectionConf.InjectedChannel               = ADC_I_C_CH;
-  InjectionConf.InjectedRank                  = 1;
+  InjectionConf.InjectedRank                  = ADC_I_C_RANK;
   HAL_ADCEx_InjectedConfigChannel(&AdcHandle_3, &InjectionConf);
 
   InjectionConf.InjectedChannel               = ADC_EMF_C_CH;
-  InjectionConf.InjectedRank                  = 2;
+  InjectionConf.InjectedRank                  = ADC_EMF_C_RANK;
   HAL_ADCEx_InjectedConfigChannel(&AdcHandle_3, &InjectionConf);
 
 
@@ -219,7 +210,7 @@ int adc_init()
   HAL_ADCEx_InjectedStart_IT(&AdcHandle_2);
   HAL_ADCEx_InjectedStart_IT(&AdcHandle_3);
 
-  HAL_ADC_Start_DMA(&AdcHandle_1, (uint32_t*) measurement_buffer, ADC_NUMBER_OF_MEAS);
+  HAL_ADC_Start_DMA(&AdcHandle_1, (uint32_t*) measurement_buffer, ADC_NUMBER_OF_REGULAR_MEAS);
 
   HAL_TIM_Base_Start(&TIMhandle);
 
@@ -228,22 +219,18 @@ int adc_init()
 
 void ADC_IRQHandler(void)
 {
-  DBG_PAD3_SET;
-
   if(__HAL_ADC_GET_FLAG(&AdcHandle_1, ADC_FLAG_JEOC)) {
 
-    m_adc_i_a   = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, 1);
-    m_adc_emf_a = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, 2);
+    measurement_buffer[ADC_I_A]   = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, ADC_I_A_RANK);
+    measurement_buffer[ADC_EMF_A] = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, ADC_EMF_A_RANK);
+    measurement_buffer[ADC_I_B]   = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, ADC_I_B_RANK);
+    measurement_buffer[ADC_EMF_B] = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, ADC_EMF_B_RANK);
+    measurement_buffer[ADC_I_C]   = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, ADC_I_C_RANK);
+    measurement_buffer[ADC_EMF_C] = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, ADC_EMF_C_RANK);
 
-    m_adc_i_b   = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, 1);
-    m_adc_emf_b = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, 2);
-
-    m_adc_i_c   = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, 1);
-    m_adc_emf_c = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, 2);
-
-    (void) position_angle_est_update(1.0f/((float)PWM_FREQUENCY_HZ));
-
-    ext_dac_set_value_raw(*adc_debug_variables[p_adc_debug_output_sel]);
+    if (new_samples_indication_cb != NULL) {
+      new_samples_indication_cb();
+    }
 
     __HAL_ADC_CLEAR_FLAG(&AdcHandle_1, ADC_FLAG_JEOC);
   }
@@ -253,11 +240,19 @@ void ADC_IRQHandler(void)
 
     fault_general_failure();
   }
-
-  DBG_PAD3_RESET;
 }
 
 float adc_get_measurement(adc_measurement_t m)
 {
   return ((float) measurement_buffer[m]) * ADC_VOLTAGE_PER_LSB;
+}
+
+uint16_t adc_get_measurement_raw(adc_measurement_t m)
+{
+  return measurement_buffer[m];
+}
+
+void adc_set_new_samples_indication_cb(void (* callback)(void))
+{
+  new_samples_indication_cb = callback;
 }

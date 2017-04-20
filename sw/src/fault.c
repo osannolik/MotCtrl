@@ -30,6 +30,22 @@ static volatile uint32_t lr;
 static volatile uint32_t pc;
 static volatile uint32_t psr;
 
+static volatile uint32_t hard_fault_status;
+static volatile uint32_t memory_bus_usage_fault_status;
+static volatile uint32_t aux_fault_status;
+static volatile uint32_t bus_fault_address; //0x20199860
+static volatile uint32_t memory_fault_address;
+
+
+void fault_get_status_registers(void)
+{
+  hard_fault_status = SCB->HFSR;
+  memory_bus_usage_fault_status = SCB->CFSR;
+  aux_fault_status = SCB->AFSR;
+  bus_fault_address = SCB->BFAR;
+  memory_fault_address = SCB->MMFAR;
+}
+
 void fault_get_reg_from_stack(uint32_t *stack_address)
 {
   r0  = stack_address[0];
@@ -59,7 +75,8 @@ inline void fault_get_stack_state(void)
 
 #else
 inline void fault_get_stack_state(void) {
-
+}
+void fault_get_status_registers(void) {
 }
 #endif
 
@@ -96,6 +113,8 @@ void HardFault_Handler(void)
    */
   fault_get_stack_state();
 
+  fault_get_status_registers();
+
   fault_general_failure();
 }
 
@@ -113,6 +132,8 @@ void MemManage_Handler(void)
    */
   fault_get_stack_state();
 
+  fault_get_status_registers();
+
   fault_general_failure();
 }
 
@@ -128,6 +149,8 @@ void BusFault_Handler(void)
    * This might be from an error detected on a bus in the memory system.
    */
   fault_get_stack_state();
+
+  fault_get_status_registers();
 
   fault_general_failure();
 }
@@ -152,6 +175,7 @@ void UsageFault_Handler(void)
    */
   fault_get_stack_state();
 
+  fault_get_status_registers();
   fault_general_failure();
 }
 

@@ -120,7 +120,7 @@ typedef enum {
  * Make a specific address become both tunable and measurable.
  * No data will be declared except the meta-data for the created symbol.
  */
-#define CALMEAS_SYMBOL_BY_ADDRESS(type, name, address, desc) calmeas_meta_t calmeas_meta_ ## name CALMEAS_MEMSEC_META = {CALMEAS_TYPECODE(type), #name, address, desc}
+#define CALMEAS_SYMBOL_BY_ADDRESS(type, name, address, desc) calmeas_meta_t calmeas_meta_ ## name CALMEAS_MEMSEC_META = {CALMEAS_TYPECODE(type), #name, (type *) address, desc}
 
 int calmeas_init(void);
 int calmeas_handler(void);

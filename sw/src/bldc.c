@@ -9,7 +9,11 @@
 #include "utils.h"
 #include "modes.h"
 #include "pwm.h"
+#include "adc.h"
+#include "ext.h"
 #include "board.h"
+
+#include "debug.h"
 
 #include "calmeas.h"
 
@@ -18,10 +22,17 @@ CALMEAS_SYMBOL(float, m_bldc_set_duty, 0, "");
 #define CALMEAS_TYPECODE_pos_direction_t   CALMEAS_TYPECODE_uint8_t
 #define CALMEAS_MEMSEC_pos_direction_t     CALMEAS_MEMSEC_uint8_t
 CALMEAS_SYMBOL(pos_direction_t, m_bldc_direction_req, DIR_NONE, "");
+CALMEAS_SYMBOL(float, m_bldc_i_a,   0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_i_b,   0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_i_c,   0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_emf_a, 0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_emf_b, 0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_emf_c, 0.0f, "");
 
 /* Parameters */
-CALMEAS_SYMBOL(uint8_t, p_manual_step, 0, "");
-CALMEAS_SYMBOL(uint32_t, p_openloop_commutation_delay_ms, 200, "");
+CALMEAS_SYMBOL(uint8_t,  p_bldc_manual_step, 0, "");
+CALMEAS_SYMBOL(uint32_t, p_bldc_openloop_commutation_delay_ms, 200, "");
+CALMEAS_SYMBOL(uint8_t,  p_bldc_debug_output_sel, 0, "");
 
 static bldc_cal_state_t cal_state = CAL_NOT_PERFORMED;
 
@@ -130,6 +141,48 @@ static const uint8_t cal_step_to_commutation_step[NUMBER_OF_DIRS][NUMBER_OF_STEP
 };
 #endif /* (POS_HALL_SENSOR_OFFSET_DEG > 15) */
 
+static void bldc_period_by_period_handler(void)
+{
+  DBG_PAD3_SET;
+
+  m_bldc_i_a = adc_get_measurement(ADC_I_A);
+  m_bldc_i_b = adc_get_measurement(ADC_I_B);
+  m_bldc_i_c = adc_get_measurement(ADC_I_C);
+  m_bldc_emf_a = adc_get_measurement(ADC_EMF_A);
+  m_bldc_emf_b = adc_get_measurement(ADC_EMF_B);
+  m_bldc_emf_c = adc_get_measurement(ADC_EMF_C);
+
+  (void) position_angle_est_update(1.0f/((float)PWM_FREQUENCY_HZ));
+
+  ext_dac_set_value_raw(adc_get_measurement_raw(p_bldc_debug_output_sel));
+
+  DBG_PAD3_RESET;
+}
+
+static void bldc_hall_commutation(uint8_t current_hall_state)
+{
+  DBG_PAD1_TOGGLE;
+
+  if (current_hall_state == 1u) {
+    DBG_PAD2_SET;
+    DBG_PAD2_RESET;
+  }
+
+  if (RUNNING == modes_current_mode()) {
+    bldc_commutation(m_bldc_direction_req, current_hall_state);
+  }
+}
+
+void bldc_commutation(pos_direction_t direction, uint8_t current_hall_state)
+{
+  uint8_t next_step = bldc_hall_state_to_step_map[direction][current_hall_state];
+
+  commutation_steps_ch1[next_step]();
+  commutation_steps_ch2[next_step]();
+  commutation_steps_ch3[next_step]();
+
+  pwm_update_event();
+}
 
 static void hall_calibration_step(uint32_t period_ms)
 {
@@ -218,7 +271,7 @@ void bldc_step(uint32_t period_ms)
 {
   static pos_direction_t prev_dir = DIR_NONE;
 
-  static uint8_t prev_p_manual_step = 0;
+  static uint8_t prev_p_bldc_manual_step = 0;
 
   static uint32_t delay_ms = 0u;
   static int8_t step;
@@ -254,14 +307,14 @@ void bldc_step(uint32_t period_ms)
     case MANUAL_STEP:
       board_gate_driver_enable();
 
-      if (p_manual_step != prev_p_manual_step) {
-        p_manual_step = MIN(p_manual_step, 6u);
-        commutation_steps_ch1[p_manual_step]();
-        commutation_steps_ch2[p_manual_step]();
-        commutation_steps_ch3[p_manual_step]();
+      if (p_bldc_manual_step != prev_p_bldc_manual_step) {
+        p_bldc_manual_step = MIN(p_bldc_manual_step, 6u);
+        commutation_steps_ch1[p_bldc_manual_step]();
+        commutation_steps_ch2[p_bldc_manual_step]();
+        commutation_steps_ch3[p_bldc_manual_step]();
         pwm_update_event();
       }
-      prev_p_manual_step = p_manual_step;
+      prev_p_bldc_manual_step = p_bldc_manual_step;
 
       pwm_set_duty_perc(ABS(m_bldc_set_duty));
 
@@ -270,7 +323,7 @@ void bldc_step(uint32_t period_ms)
     case OPEN_LOOP:
       board_gate_driver_enable();
 
-      if (delay_ms < p_openloop_commutation_delay_ms) {
+      if (delay_ms < p_bldc_openloop_commutation_delay_ms) {
         delay_ms += period_ms;
       } else {
         delay_ms = 0;
@@ -308,15 +361,9 @@ void bldc_set_duty_cycle(float duty_req)
   m_bldc_set_duty = duty_req;
 }
 
-static void bldc_hall_commutation(uint8_t current_hall_state)
-{
-  if (RUNNING == modes_current_mode()) {
-    bldc_commutation(m_bldc_direction_req, current_hall_state);
-  }
-}
-
 int bldc_init(void)
 {
+  adc_set_new_samples_indication_cb(bldc_period_by_period_handler);
   position_set_hall_commutation_indication_cb(bldc_hall_commutation);
 
 #if 1
@@ -328,15 +375,4 @@ int bldc_init(void)
   }
 #endif
   return 0;
-}
-
-void bldc_commutation(pos_direction_t direction, uint8_t current_hall_state)
-{
-  uint8_t next_step = bldc_hall_state_to_step_map[direction][current_hall_state];
-
-  commutation_steps_ch1[next_step]();
-  commutation_steps_ch2[next_step]();
-  commutation_steps_ch3[next_step]();
-
-  pwm_update_event();
 }

@@ -131,28 +131,11 @@ int position_init(void)
   return 0;
 }
 
-#include "debug.h"
-
-#if 0
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-  DBG_PAD1_TOGGLE;
-}
-#endif
-
 static void hall_commutation(void)
 {
-  DBG_PAD2_TOGGLE;
-
-  if (m_pos_hallstate == 1u) {
-    DBG_PAD1_SET;
-  }
-
   if (commutation_indication_cb != NULL) {
     commutation_indication_cb(m_pos_hallstate);
   }
-
-  DBG_PAD1_RESET;
 }
 
 static float speed_raw_erpm(const uint32_t speed_timer, const pos_direction_t direction)
@@ -193,8 +176,6 @@ static float angle_raw_deg(const uint8_t hall_state, const pos_direction_t direc
 
 static void angle_and_speed_update(TIM_HandleTypeDef * const htim)
 {
-  //DBG_PAD3_TOGGLE;
-
   /* Prepare for commutation. Assume we need to wait a factor of the latest hall period */
   m_pos_speed_timer = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1); // Also clears IF
   htim->Instance->CCR2 = (uint32_t) (((float) m_pos_speed_timer) * p_commutation_delay);
