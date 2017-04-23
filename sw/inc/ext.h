@@ -23,8 +23,17 @@
 #define EXT_DAC_12BIT     (12u)
 #define EXT_DAC_DATAWIDTH EXT_DAC_12BIT
 
+#define EXT_DAC_VREF                    (3.3f)
+
+#if (EXT_DAC_DATAWIDTH == EXT_DAC_12BIT)
+#define EXT_DAC_LSB_PER_VOLTAGE         (4095.0f/EXT_DAC_VREF)
+#else
+#define EXT_DAC_LSB_PER_VOLTAGE         (255.0f/EXT_DAC_VREF)
+#endif
+
 int ext_init(void);
 int ext_dac_init(void);
 void ext_dac_set_value_raw(uint32_t value);
+void ext_dac_set_value_volt(float dac_volt);
 
 #endif /* EXT_H_ */

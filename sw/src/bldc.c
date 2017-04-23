@@ -22,12 +22,6 @@ CALMEAS_SYMBOL(float, m_bldc_set_duty, 0, "");
 #define CALMEAS_TYPECODE_pos_direction_t   CALMEAS_TYPECODE_uint8_t
 #define CALMEAS_MEMSEC_pos_direction_t     CALMEAS_MEMSEC_uint8_t
 CALMEAS_SYMBOL(pos_direction_t, m_bldc_direction_req, DIR_NONE, "");
-CALMEAS_SYMBOL(float, m_bldc_i_a,   0.0f, "");
-CALMEAS_SYMBOL(float, m_bldc_i_b,   0.0f, "");
-CALMEAS_SYMBOL(float, m_bldc_i_c,   0.0f, "");
-CALMEAS_SYMBOL(float, m_bldc_emf_a, 0.0f, "");
-CALMEAS_SYMBOL(float, m_bldc_emf_b, 0.0f, "");
-CALMEAS_SYMBOL(float, m_bldc_emf_c, 0.0f, "");
 
 /* Parameters */
 CALMEAS_SYMBOL(uint8_t,  p_bldc_manual_step, 0, "");
@@ -141,20 +135,62 @@ static const uint8_t cal_step_to_commutation_step[NUMBER_OF_DIRS][NUMBER_OF_STEP
 };
 #endif /* (POS_HALL_SENSOR_OFFSET_DEG > 15) */
 
+CALMEAS_SYMBOL(float, m_bldc_i_a,   0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_i_b,   0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_i_c,   0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_emf_a, 0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_emf_b, 0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_emf_c, 0.0f, "");
+
+static volatile uint8_t current_step = STEP_OFF;
+
 static void bldc_period_by_period_handler(void)
 {
   DBG_PAD3_SET;
 
-  m_bldc_i_a = adc_get_measurement(ADC_I_A);
-  m_bldc_i_b = adc_get_measurement(ADC_I_B);
-  m_bldc_i_c = adc_get_measurement(ADC_I_C);
+  m_bldc_i_a = board_ix_volt_to_ampere(adc_get_measurement(ADC_I_A));
+  m_bldc_i_b = board_ix_volt_to_ampere(adc_get_measurement(ADC_I_B));
+  m_bldc_i_c = board_ix_volt_to_ampere(adc_get_measurement(ADC_I_C));
   m_bldc_emf_a = adc_get_measurement(ADC_EMF_A);
   m_bldc_emf_b = adc_get_measurement(ADC_EMF_B);
   m_bldc_emf_c = adc_get_measurement(ADC_EMF_C);
 
+  float i_tot;
+  switch (current_step) {
+    case STEP_1:
+      i_tot = (m_bldc_i_c + -m_bldc_i_a)*0.5f;
+      break;
+    case STEP_2:
+      i_tot = (m_bldc_i_c + -m_bldc_i_b)*0.5f;
+      break;
+    case STEP_3:
+      i_tot = (m_bldc_i_a +-m_bldc_i_b)*0.5f;
+      break;
+    case STEP_4:
+      i_tot = (m_bldc_i_a +-m_bldc_i_c)*0.5f;
+      break;
+    case STEP_5:
+      i_tot = (m_bldc_i_b +-m_bldc_i_c)*0.5f;
+      break;
+    case STEP_6:
+      i_tot = (m_bldc_i_b +-m_bldc_i_a)*0.5f;
+      break;
+    default:
+      i_tot = 0.0f;
+      break;
+  }
+
   (void) position_angle_est_update(1.0f/((float)PWM_FREQUENCY_HZ));
 
-  ext_dac_set_value_raw(adc_get_measurement_raw(p_bldc_debug_output_sel));
+  uint16_t dac_output;
+
+  if (p_bldc_debug_output_sel <= ADC_EMF_C) {
+    dac_output = adc_get_measurement_raw(p_bldc_debug_output_sel);
+  } else {
+    dac_output = EXT_DAC_LSB_PER_VOLTAGE * board_ix_ampere_to_volt(i_tot);
+  }
+
+  ext_dac_set_value_raw(dac_output);
 
   DBG_PAD3_RESET;
 }
@@ -173,6 +209,8 @@ static void bldc_hall_commutation(uint8_t current_hall_state)
   }
 }
 
+
+
 void bldc_commutation(pos_direction_t direction, uint8_t current_hall_state)
 {
   uint8_t next_step = bldc_hall_state_to_step_map[direction][current_hall_state];
@@ -182,6 +220,8 @@ void bldc_commutation(pos_direction_t direction, uint8_t current_hall_state)
   commutation_steps_ch3[next_step]();
 
   pwm_update_event();
+
+  current_step = next_step;
 }
 
 static void hall_calibration_step(uint32_t period_ms)

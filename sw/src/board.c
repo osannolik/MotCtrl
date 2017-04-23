@@ -7,7 +7,6 @@
 
 #include "math.h"
 #include "board.h"
-#include "adc.h"
 #include "utils.h"
 
 #include "calmeas.h"
@@ -85,4 +84,12 @@ float board_mcu_temp_degC(void)
   const float v_sense = adc_get_measurement(ADC_MCU_TEMP);
 
   return 25.0f + (v_sense - BOARD_V25)/BOARD_AVG_SLOPE;
+}
+
+inline float board_ix_volt_to_ampere(float adc_volt) {
+  return (adc_volt-BOARD_INA240_OFFSET_V)/(BOARD_R_SHUNT*BOARD_INA240_GAIN);
+}
+
+inline float board_ix_ampere_to_volt(float ix_ampere) {
+  return BOARD_R_SHUNT*BOARD_INA240_GAIN*ix_ampere + BOARD_INA240_OFFSET_V;
 }

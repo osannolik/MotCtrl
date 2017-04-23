@@ -9,6 +9,7 @@
 #define BOARD_H_
 
 #include "stm32f4xx_hal.h"
+#include "adc.h"
 
 #define BOARD_GATE_DRIVER_PIN     GPIO_PIN_3
 #define BOARD_GATE_DRIVER_PORT    GPIOA
@@ -27,6 +28,14 @@
 #define BOARD_R3                  (10000.0f)
 #define BOARD_NTC                 (10000.0f)
 #define BOARD_NTC_BETA            (3434.0f)
+
+#define BOARD_R_SHUNT             (0.5e-3f)
+#define BOARD_INA240_GAIN         (50.0f) // V/V
+#define BOARD_INA240_OFFSET_V     (ADC_VREF*0.5f)
+
+
+inline float board_ix_volt_to_ampere(float adc_volt);
+inline float board_ix_ampere_to_volt(float ix_ampere);
 
 int board_init(void);
 void board_step(const uint32_t period_ms);
