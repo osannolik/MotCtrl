@@ -6,6 +6,7 @@
  */
 
 #include "pwm.h"
+#include "utils.h"
 
 #include "debug.h"
 #include "calmeas.h"
@@ -14,7 +15,6 @@
 CALMEAS_SYMBOL(uint32_t, m_pwm_period, 0, "");
 
 /* Parameters */
-CALMEAS_SYMBOL(float, p_pwm_sample_delay, 0.5f, "");
 
 static TIM_HandleTypeDef TIMhandle;
 
@@ -49,6 +49,11 @@ static inline void set_oc_mode_ch2(TIM_TypeDef* TIMx, uint32_t OC_mode) {
 static inline void set_oc_mode_ch3(TIM_TypeDef* TIMx, uint32_t OC_mode) {
   TIMx->CCMR2 &= ~TIM_CCMR2_OC3M;
   TIMx->CCMR2 |= OC_mode;
+}
+
+static inline void set_oc_mode_ch4(TIM_TypeDef* TIMx, uint32_t OC_mode) {
+  TIMx->CCMR2 &= ~TIM_CCMR2_OC4M;
+  TIMx->CCMR2 |= (OC_mode << 8);
 }
 
 int pwm_init(void)
@@ -124,6 +129,15 @@ int pwm_init(void)
   HAL_TIM_PWM_ConfigChannel(&TIMhandle, &OCinit, TIM_CHANNEL_3);
   HAL_TIM_PWM_ConfigChannel(&TIMhandle, &OCinit, TIM_CHANNEL_4); // Ch4 is used to trigger adc
 
+  pwm_set_sample_trigger_perc(0.0f);
+
+#if 0
+  TIM_MasterConfigTypeDef MasterConfigHandle;
+  MasterConfigHandle.MasterOutputTrigger = TIM_TRGO_UPDATE;
+  MasterConfigHandle.MasterSlaveMode = TIM_MASTERSLAVEMODE_ENABLE;
+  HAL_TIMEx_MasterConfigSynchronization(&TIMhandle, &MasterConfigHandle);
+#endif
+
   /* Configure deadtime and lock all settings */
   TIM_BreakDeadTimeConfigTypeDef TIMBreakDThandle;
   TIMBreakDThandle.AutomaticOutput  = TIM_AUTOMATICOUTPUT_DISABLE;
@@ -193,17 +207,61 @@ void TIM1_UP_TIM10_IRQHandler(void)
 }
 #endif
 
-void pwm_set_duty_perc(float duty)
+void pwm_disable_sample_trigger(void)
 {
-  duty = 0.01f * duty * ((float) m_pwm_period);
+  set_oc_mode_ch4(TIMhandle.Instance, TIM_OCMODE_PWM1);
+  TIMhandle.Instance->CCR4 = 0u;
+}
 
-  uint32_t duty_period  = (uint32_t) (duty);
-  uint32_t sample_period = (uint32_t) (p_pwm_sample_delay * duty);
+/* Sets the time when the sample trigger is triggered.
+ * Edge-aligned:      0 - 100, where 0 is positive edge.
+ * Center-aligned: -100 - 100, where 0 is center of positive
+ *                             waveform, and +/-100 is center of low. */
+void pwm_set_sample_trigger_perc(const float duty)
+{
+  const uint32_t full_period = m_pwm_period - 1;
+  const uint32_t ccr = (uint32_t) (0.01f * ABS(duty) * (float)full_period);
+
+  TIMhandle.Instance->CCR4 = MIN(MAX(ccr, 1u), full_period);
+
+#if (PWM_EDGE_ALIGNMENT == PWM_CENTER)
+  uint32_t polarity;
+  if (duty > 0.0f) {
+    polarity = TIM_OCMODE_PWM2;
+  } else {
+    polarity = TIM_OCMODE_PWM1;
+  }
+  set_oc_mode_ch4(TIMhandle.Instance, polarity);
+#else
+  set_oc_mode_ch4(TIMhandle.Instance, TIM_OCMODE_PWM2);
+#endif
+}
+
+void pwm_set_duty_gate_abc_perc(const float duty)
+{
+  const uint32_t duty_period = (uint32_t) (0.01f * duty * ((float) m_pwm_period));
 
   TIMhandle.Instance->CCR1 = duty_period;
   TIMhandle.Instance->CCR2 = duty_period;
   TIMhandle.Instance->CCR3 = duty_period;
-  TIMhandle.Instance->CCR4 = sample_period;
+}
+
+void pwm_set_duty_gate_a_perc(const float duty)
+{
+  const uint32_t duty_period = (uint32_t) (0.01f * duty * ((float) m_pwm_period));
+  TIMhandle.Instance->CCR1 = duty_period;
+}
+
+void pwm_set_duty_gate_b_perc(const float duty)
+{
+  const uint32_t duty_period = (uint32_t) (0.01f * duty * ((float) m_pwm_period));
+  TIMhandle.Instance->CCR2 = duty_period;
+}
+
+void pwm_set_duty_gate_c_perc(const float duty)
+{
+  const uint32_t duty_period = (uint32_t) (0.01f * duty * ((float) m_pwm_period));
+  TIMhandle.Instance->CCR3 = duty_period;
 }
 
 void pwm_update_event(void)

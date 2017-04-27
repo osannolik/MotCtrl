@@ -8,7 +8,8 @@
 #ifndef BLDC_H_
 #define BLDC_H_
 
-#include "stm32f4xx_hal.h"
+#include <stdint.h>
+#include <stddef.h>
 #include "position.h"
 
 typedef enum {
@@ -32,8 +33,9 @@ typedef enum {
 } bldc_cal_state_t;
 
 void bldc_step(uint32_t period_ms);
-void bldc_set_duty_cycle(float duty_req);
+void bldc_request_duty_cycle(float duty_req);
 int bldc_init(void);
+void bldc_idle_state(void);
 void bldc_safe_state(void);
 bldc_cal_state_t bldc_cal_state(void);
 void bldc_commutation(pos_direction_t direction, uint8_t current_hall_state);

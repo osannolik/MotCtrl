@@ -7,6 +7,11 @@
 
 #include "utils.h"
 
+inline float saturatef(const float x, const float min, const float max)
+{
+  return MAX(MIN(x,max),min);
+}
+
 int gcd(int a, int b) {
   /* Euclidean algorithm */
   int tmp;

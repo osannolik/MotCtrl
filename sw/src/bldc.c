@@ -27,6 +27,8 @@ CALMEAS_SYMBOL(pos_direction_t, m_bldc_direction_req, DIR_NONE, "");
 CALMEAS_SYMBOL(uint8_t,  p_bldc_manual_step, 0, "");
 CALMEAS_SYMBOL(uint32_t, p_bldc_openloop_commutation_delay_ms, 200, "");
 CALMEAS_SYMBOL(uint8_t,  p_bldc_debug_output_sel, 0, "");
+CALMEAS_SYMBOL(float,    p_bldc_sample_trigger, -3.0f, "");  // Offset to compensate for sample delay
+//CALMEAS_SYMBOL(float,    p_bldc_sample_trigger, 0.5f, "");
 
 static bldc_cal_state_t cal_state = CAL_NOT_PERFORMED;
 
@@ -144,9 +146,43 @@ CALMEAS_SYMBOL(float, m_bldc_emf_c, 0.0f, "");
 
 static volatile uint8_t current_step = STEP_OFF;
 
+CALMEAS_SYMBOL(uint8_t, p_bldc_current_ctrl_enable, 0, "");
+CALMEAS_SYMBOL(float, p_bldc_current_ctrl_set_point_A, 0.0f, "");
+CALMEAS_SYMBOL(float, p_bldc_current_ctrl_gain, 0.0f, "");
+CALMEAS_SYMBOL(float, p_bldc_current_ctrl_max_delta, 0.0f, "");
+CALMEAS_SYMBOL(float, p_bldc_current_ctrl_max, 0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_current_ctrl_diff, 0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_i_tot, 0.0f, "");
+CALMEAS_SYMBOL(float, m_bldc_i_tot_avg, 0.0f, "");
+
+CALMEAS_SYMBOL(uint32_t, p_bldc_i_tot_avg_len, 10, "");
+#define I_HIST_LEN (200)
+
+static void direction_commutation(const float duty_req)
+{
+  static pos_direction_t prev_direction = DIR_NONE;
+
+  float direction;
+
+  if (duty_req > 0.0f) {
+    direction = DIR_CW;
+  } else if (duty_req < 0.0f) {
+    direction = DIR_CCW;
+  } else {
+    direction = DIR_NONE;
+  }
+
+  if (prev_direction != direction) {
+    m_bldc_direction_req = direction;
+    bldc_commutation(direction, position_get_hall_state());
+  }
+
+  prev_direction = direction;
+}
+
 static void bldc_period_by_period_handler(void)
 {
-  DBG_PAD3_SET;
+  //DBG_PAD3_SET;
 
   m_bldc_i_a = board_ix_volt_to_ampere(adc_get_measurement(ADC_I_A));
   m_bldc_i_b = board_ix_volt_to_ampere(adc_get_measurement(ADC_I_B));
@@ -155,44 +191,94 @@ static void bldc_period_by_period_handler(void)
   m_bldc_emf_b = adc_get_measurement(ADC_EMF_B);
   m_bldc_emf_c = adc_get_measurement(ADC_EMF_C);
 
+
+  (void) position_angle_est_update(1.0f/((float)PWM_FREQUENCY_HZ));
+
+
   float i_tot;
   switch (current_step) {
     case STEP_1:
-      i_tot = (m_bldc_i_c + -m_bldc_i_a)*0.5f;
+      i_tot = (m_bldc_i_c - m_bldc_i_a)*0.5f;
       break;
     case STEP_2:
-      i_tot = (m_bldc_i_c + -m_bldc_i_b)*0.5f;
+      i_tot = (m_bldc_i_c - m_bldc_i_b)*0.5f;
       break;
     case STEP_3:
-      i_tot = (m_bldc_i_a +-m_bldc_i_b)*0.5f;
+      i_tot = (m_bldc_i_a - m_bldc_i_b)*0.5f;
       break;
     case STEP_4:
-      i_tot = (m_bldc_i_a +-m_bldc_i_c)*0.5f;
+      i_tot = (m_bldc_i_a - m_bldc_i_c)*0.5f;
       break;
     case STEP_5:
-      i_tot = (m_bldc_i_b +-m_bldc_i_c)*0.5f;
+      i_tot = (m_bldc_i_b - m_bldc_i_c)*0.5f;
       break;
     case STEP_6:
-      i_tot = (m_bldc_i_b +-m_bldc_i_a)*0.5f;
+      i_tot = (m_bldc_i_b - m_bldc_i_a)*0.5f;
       break;
     default:
       i_tot = 0.0f;
       break;
   }
 
-  (void) position_angle_est_update(1.0f/((float)PWM_FREQUENCY_HZ));
+  i_tot = MAX(i_tot, 0.0f);
+
+  static float i_tot_hist[I_HIST_LEN];
+  static uint32_t i_index = 0;
+
+  i_tot_hist[i_index++] = i_tot;
+
+  if (i_index >= p_bldc_i_tot_avg_len) {
+    i_index = 0;
+  }
+
+  float i_tot_avg = 0;
+  uint32_t i;
+  for (i=0; i<p_bldc_i_tot_avg_len; i++) {
+    i_tot_avg += i_tot_hist[i];
+  }
+  i_tot_avg = i_tot_avg/((float) p_bldc_i_tot_avg_len);
+
+  float u_delta = 0;
+
+  if (p_bldc_current_ctrl_enable != 0) {
+    m_bldc_current_ctrl_diff = p_bldc_current_ctrl_set_point_A - i_tot_avg;
+    u_delta = p_bldc_current_ctrl_gain * m_bldc_current_ctrl_diff;
+
+    u_delta = saturatef(u_delta, -p_bldc_current_ctrl_max_delta, p_bldc_current_ctrl_max_delta);
+
+    m_bldc_set_duty = saturatef(m_bldc_set_duty+u_delta, 5.0f, p_bldc_current_ctrl_max);
+  }
+
+
+  pwm_set_sample_trigger_perc(p_bldc_sample_trigger);
+
+  //pwm_set_sample_trigger_perc(p_bldc_sample_trigger * m_bldc_set_duty);
+
+  direction_commutation(m_bldc_set_duty);
+  
+  pwm_set_duty_gate_abc_perc(ABS(m_bldc_set_duty));
+
 
   uint16_t dac_output;
 
   if (p_bldc_debug_output_sel <= ADC_EMF_C) {
     dac_output = adc_get_measurement_raw(p_bldc_debug_output_sel);
-  } else {
+  } else if (p_bldc_debug_output_sel == ADC_EMF_C + 1) {
     dac_output = EXT_DAC_LSB_PER_VOLTAGE * board_ix_ampere_to_volt(i_tot);
+  } else if (p_bldc_debug_output_sel == ADC_EMF_C + 2) {
+    dac_output = EXT_DAC_LSB_PER_VOLTAGE * 3.3f/100.0f * m_bldc_set_duty;
+  } else if (p_bldc_debug_output_sel == ADC_EMF_C + 3) {
+    dac_output = EXT_DAC_LSB_PER_VOLTAGE * 3.3f/p_bldc_current_ctrl_max_delta * u_delta;
+  } else {
+    dac_output = EXT_DAC_LSB_PER_VOLTAGE * board_ix_ampere_to_volt(i_tot_avg);
   }
+
+  m_bldc_i_tot = i_tot;
+  m_bldc_i_tot_avg = i_tot_avg;
 
   ext_dac_set_value_raw(dac_output);
 
-  DBG_PAD3_RESET;
+  //DBG_PAD3_RESET;
 }
 
 static void bldc_hall_commutation(uint8_t current_hall_state)
@@ -208,8 +294,6 @@ static void bldc_hall_commutation(uint8_t current_hall_state)
     bldc_commutation(m_bldc_direction_req, current_hall_state);
   }
 }
-
-
 
 void bldc_commutation(pos_direction_t direction, uint8_t current_hall_state)
 {
@@ -236,7 +320,7 @@ static void hall_calibration_step(uint32_t period_ms)
   switch (cal_state) {
 
     case CAL_NOT_PERFORMED:
-      bldc_safe_state();
+      bldc_idle_state();
       step = 6u;
       cal_state = CAL_PRE_ROTATION;
       break;
@@ -247,7 +331,7 @@ static void hall_calibration_step(uint32_t period_ms)
       commutation_steps_ch3_cal[step]();
 
       pwm_update_event();
-      pwm_set_duty_perc(3.0f);
+      bldc_request_duty_cycle(3.0f);
       if (delay_ms < rotation_delay_time_ms) {
         delay_ms += period_ms;
       } else {
@@ -266,7 +350,7 @@ static void hall_calibration_step(uint32_t period_ms)
       commutation_steps_ch3_cal[step]();
 
       pwm_update_event();
-      pwm_set_duty_perc(3.0f);
+      bldc_request_duty_cycle(3.0f);
       if (delay_ms < probing_delay_time_ms) {
         delay_ms += period_ms;
       } else {
@@ -289,12 +373,13 @@ static void hall_calibration_step(uint32_t period_ms)
       break;
 
     case CAL_CHECK:
+      bldc_request_duty_cycle(0.0f);
       position_calculate_direction_map();
       cal_state = CAL_OK;
       break;
 
     case CAL_OK:
-      bldc_safe_state();
+      bldc_idle_state();
       break;
 
     default:
@@ -309,8 +394,6 @@ bldc_cal_state_t bldc_cal_state(void)
 
 void bldc_step(uint32_t period_ms)
 {
-  static pos_direction_t prev_dir = DIR_NONE;
-
   static uint8_t prev_p_bldc_manual_step = 0;
 
   static uint32_t delay_ms = 0u;
@@ -325,22 +408,6 @@ void bldc_step(uint32_t period_ms)
 
     case RUNNING:
       board_gate_driver_enable();
-
-      if (m_bldc_set_duty > 0.0f) {
-        m_bldc_direction_req = DIR_CW;
-      } else if (m_bldc_set_duty < 0.0f) {
-        m_bldc_direction_req = DIR_CCW;
-      } else {
-        m_bldc_direction_req = DIR_NONE;
-      }
-
-      if (prev_dir != m_bldc_direction_req) {
-        bldc_commutation(m_bldc_direction_req, position_get_hall_state());
-      }
-      prev_dir = m_bldc_direction_req;
-
-      pwm_set_duty_perc(ABS(m_bldc_set_duty));
-
       break;
 
     /* Debugging modes */
@@ -355,8 +422,6 @@ void bldc_step(uint32_t period_ms)
         pwm_update_event();
       }
       prev_p_bldc_manual_step = p_bldc_manual_step;
-
-      pwm_set_duty_perc(ABS(m_bldc_set_duty));
 
       break;
 
@@ -376,27 +441,35 @@ void bldc_step(uint32_t period_ms)
         pwm_update_event();
       }
 
-      pwm_set_duty_perc(ABS(m_bldc_set_duty));
-
       break;
 
     default:
-      bldc_safe_state();
+      bldc_idle_state();
       break;
   }
 }
 
-void bldc_safe_state(void)
+void bldc_idle_state(void)
 {
   board_gate_driver_disable();
-  pwm_set_duty_perc(0.0f);
+
   commutation_steps_ch1[STEP_OFF]();
   commutation_steps_ch2[STEP_OFF]();
   commutation_steps_ch3[STEP_OFF]();
   pwm_update_event();
+
+  pwm_set_duty_gate_abc_perc(0.0f);
+
+  bldc_request_duty_cycle(0.0f);
 }
 
-void bldc_set_duty_cycle(float duty_req)
+void bldc_safe_state(void)
+{
+  pwm_disable_sample_trigger();
+  bldc_idle_state();
+}
+
+void bldc_request_duty_cycle(float duty_req)
 {
   m_bldc_set_duty = duty_req;
 }

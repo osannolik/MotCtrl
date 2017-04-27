@@ -38,12 +38,17 @@
 
 #define PWM_EDGE            (0u)
 #define PWM_CENTER          (1u)
-#define PWM_EDGE_ALIGNMENT  PWM_EDGE
+#define PWM_EDGE_ALIGNMENT  PWM_CENTER
 
 #define PWM_BREAK_IRQ_PRIO  (0x00u)
 
 int pwm_init(void);
-void pwm_set_duty_perc(float duty);
+void pwm_disable_sample_trigger(void);
+void pwm_set_sample_trigger_perc(const float duty);
+void pwm_set_duty_gate_abc_perc(const float duty);
+void pwm_set_duty_gate_a_perc(const float duty);
+void pwm_set_duty_gate_b_perc(const float duty);
+void pwm_set_duty_gate_c_perc(const float duty);
 void pwm_update_event(void);
 void pwm_break_event(void);
 void pwm_ch3_off(void);

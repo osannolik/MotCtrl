@@ -41,8 +41,8 @@ int main(void)
   debug_init();
 
   board_init();
-  pwm_init();
   adc_init();
+  pwm_init();
 
   ext_init();
 

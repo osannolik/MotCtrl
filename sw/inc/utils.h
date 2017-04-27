@@ -8,6 +8,7 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
+inline float saturatef(const float x, const float min, const float max);
 int gcd(int a, int b);
 int lcm(int a, int b);
 

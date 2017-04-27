@@ -35,7 +35,7 @@
 /* The minimum number of ticks between successive load calculations */
 #define PERF_CALC_TICK_PERIOD_MIN     (20)
 /* Get this value by running the system with only the idle task */
-#define PERF_COUNTS_PER_TICK_NOLOAD   (3996)
+#define PERF_COUNTS_PER_TICK_NOLOAD   (8566)
 #endif /* RT_USE_PERF */
 
 #endif /* RT_KERNEL_CONFIG_H_ */

@@ -160,7 +160,7 @@ int adc_init()
   InjectionConf.AutoInjectedConv              = DISABLE;
   InjectionConf.InjectedDiscontinuousConvMode = DISABLE;
   InjectionConf.ExternalTrigInjecConv         = ADC_EXTERNALTRIGINJECCONV_T1_CC4;
-  InjectionConf.ExternalTrigInjecConvEdge     = ADC_EXTERNALTRIGINJECCONVEDGE_FALLING;
+  InjectionConf.ExternalTrigInjecConvEdge     = ADC_EXTERNALTRIGINJECCONVEDGE_RISING;
   InjectionConf.InjectedOffset                = 0;
   InjectionConf.InjectedSamplingTime          = ADC_SAMPLETIME_3CYCLES;
 
@@ -216,9 +216,11 @@ int adc_init()
 
   return 0;
 }
-
+#include "debug.h"
 void ADC_IRQHandler(void)
 {
+  DBG_PAD3_SET;
+
   if(__HAL_ADC_GET_FLAG(&AdcHandle_1, ADC_FLAG_JEOC)) {
 
     measurement_buffer[ADC_I_A]   = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, ADC_I_A_RANK);
@@ -240,6 +242,8 @@ void ADC_IRQHandler(void)
 
     fault_general_failure();
   }
+
+  DBG_PAD3_RESET;
 }
 
 float adc_get_measurement(adc_measurement_t m)
