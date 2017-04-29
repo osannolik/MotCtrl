@@ -7,7 +7,7 @@
 
 #include "modes.h"
 #include "board.h"
-#include "bldc.h"
+#include "bldc_6step.h"
 
 #include "calmeas.h"
 
@@ -42,7 +42,7 @@ void modes_step(uint32_t period_ms)
       break;
     
     case BLDC_HALL_CALIBRATION:
-      if (CAL_OK == bldc_cal_state()) {
+      if (CAL_OK == bldc6s_cal_state()) {
         mode = RUNNING;
       }
       break;
