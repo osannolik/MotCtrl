@@ -6,12 +6,12 @@
  */
 
 #include "fault.h"
-#include "bldc.h"
+#include "inverter.h"
 
 void fault_general_failure(void)
 {
   while (1) {
-    bldc_safe_state();
+    ivtr_safe_state();
   }
 }
 

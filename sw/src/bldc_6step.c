@@ -6,7 +6,7 @@
  */
 
 #include "bldc_6step.h"
-#include "bldc.h"
+#include "inverter.h"
 #include "pwm.h"
 
 static volatile uint8_t current_step = STEP_OFF;
@@ -153,14 +153,14 @@ void bldc6s_hall_calibration_step(uint32_t period_ms)
   switch (cal_state) {
 
     case CAL_NOT_PERFORMED:
-      bldc_idle_state();
+      ivtr_idle_state();
       step = 6u;
       cal_state = CAL_PRE_ROTATION;
       break;
 
     case CAL_PRE_ROTATION:
       bldc6s_set_commutation_step(step);
-      bldc_request_duty_cycle(3.0f);
+      ivtr_request_duty_cycle(3.0f);
       if (delay_ms < rotation_delay_time_ms) {
         delay_ms += period_ms;
       } else {
@@ -175,7 +175,7 @@ void bldc6s_hall_calibration_step(uint32_t period_ms)
 
     case CAL_PROBING:
       bldc6s_set_commutation_step(step);
-      bldc_request_duty_cycle(3.0f);
+      ivtr_request_duty_cycle(3.0f);
       if (delay_ms < probing_delay_time_ms) {
         delay_ms += period_ms;
       } else {
@@ -198,13 +198,13 @@ void bldc6s_hall_calibration_step(uint32_t period_ms)
       break;
 
     case CAL_CHECK:
-      bldc_request_duty_cycle(0.0f);
+      ivtr_request_duty_cycle(0.0f);
       position_calculate_direction_map();
       cal_state = CAL_OK;
       break;
 
     case CAL_OK:
-      bldc_idle_state();
+      ivtr_idle_state();
       break;
 
     default:
