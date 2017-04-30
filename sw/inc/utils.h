@@ -8,6 +8,12 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
+typedef struct {
+  float x_prev;
+} rate_limit_t;
+
+float rate_limit(rate_limit_t * const r, const float x, const float dx_min, const float dx_max);
+void rate_limit_reset(rate_limit_t * const r, const float x0);
 inline float saturatef(const float x, const float min, const float max);
 int gcd(int a, int b);
 int lcm(int a, int b);

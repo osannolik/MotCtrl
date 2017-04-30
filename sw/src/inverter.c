@@ -20,7 +20,8 @@
 
 
 /* Measurements */
-CALMEAS_SYMBOL(float, m_ivtr_set_duty, 0, "");
+CALMEAS_SYMBOL(float, m_ivtr_duty_set, 0, "");
+CALMEAS_SYMBOL(float, m_ivtr_duty_req, 0, "");
 #define CALMEAS_TYPECODE_pos_direction_t   CALMEAS_TYPECODE_uint8_t
 #define CALMEAS_MEMSEC_pos_direction_t     CALMEAS_MEMSEC_uint8_t
 CALMEAS_SYMBOL(pos_direction_t, m_ivtr_direction_req, DIR_NONE, "");
@@ -46,10 +47,12 @@ CALMEAS_SYMBOL(float, p_ivtr_current_ctrl_gain, 0.0f, "");
 CALMEAS_SYMBOL(float, p_ivtr_current_ctrl_max_delta, 0.0f, "");
 CALMEAS_SYMBOL(float, p_ivtr_current_ctrl_max, 0.0f, "");
 CALMEAS_SYMBOL(uint32_t, p_ivtr_i_tot_avg_len, 10, "");
+CALMEAS_SYMBOL(float, p_ivtr_duty_rate_max, 0.1f, "");
 
 
 #define I_HIST_LEN (200)
 
+static rate_limit_t rlim_duty;
 
 static void direction_commutation(const float duty_req)
 {
@@ -132,6 +135,7 @@ static void ivtr_period_by_period_handler(void)
   i_tot_avg = i_tot_avg/((float) p_ivtr_i_tot_avg_len);
 
   float u_delta = 0;
+  float tmp;
 
   if (p_ivtr_current_ctrl_enable != 0) {
     m_ivtr_current_ctrl_diff = p_ivtr_current_ctrl_set_point_A - i_tot_avg;
@@ -139,17 +143,21 @@ static void ivtr_period_by_period_handler(void)
 
     u_delta = saturatef(u_delta, -p_ivtr_current_ctrl_max_delta, p_ivtr_current_ctrl_max_delta);
 
-    m_ivtr_set_duty = saturatef(m_ivtr_set_duty+u_delta, 5.0f, p_ivtr_current_ctrl_max);
+    tmp = saturatef(m_ivtr_duty_set+u_delta, 5.0f, p_ivtr_current_ctrl_max);
+  } else {
+    tmp = m_ivtr_duty_req;
   }
 
 
+  m_ivtr_duty_set = rate_limit(&rlim_duty, tmp, -p_ivtr_duty_rate_max, p_ivtr_duty_rate_max);
+
   pwm_set_sample_trigger_perc(p_ivtr_sample_trigger);
 
-  //pwm_set_sample_trigger_perc(p_ivtr_sample_trigger * m_ivtr_set_duty);
+  //pwm_set_sample_trigger_perc(p_ivtr_sample_trigger * m_ivtr_duty_set);
 
-  direction_commutation(m_ivtr_set_duty);
+  direction_commutation(m_ivtr_duty_set);
   
-  pwm_set_duty_gate_abc_perc(ABS(m_ivtr_set_duty));
+  pwm_set_duty_gate_abc_perc(ABS(m_ivtr_duty_set));
 
 
   uint16_t dac_output;
@@ -159,7 +167,7 @@ static void ivtr_period_by_period_handler(void)
   } else if (p_ivtr_debug_output_sel == ADC_EMF_C + 1) {
     dac_output = EXT_DAC_LSB_PER_VOLTAGE * board_ix_ampere_to_volt(i_tot);
   } else if (p_ivtr_debug_output_sel == ADC_EMF_C + 2) {
-    dac_output = EXT_DAC_LSB_PER_VOLTAGE * 3.3f/100.0f * m_ivtr_set_duty;
+    dac_output = EXT_DAC_LSB_PER_VOLTAGE * 3.3f/100.0f * m_ivtr_duty_set;
   } else if (p_ivtr_debug_output_sel == ADC_EMF_C + 3) {
     dac_output = EXT_DAC_LSB_PER_VOLTAGE * 3.3f/p_ivtr_current_ctrl_max_delta * u_delta;
   } else {
@@ -258,7 +266,7 @@ void ivtr_safe_state(void)
 
 void ivtr_request_duty_cycle(float duty_req)
 {
-  m_ivtr_set_duty = duty_req;
+  m_ivtr_duty_req = duty_req;
 }
 
 int ivtr_init(void)
@@ -267,6 +275,8 @@ int ivtr_init(void)
   position_set_hall_commutation_indication_cb(hall_commutation);
 
   bldc6s_init();
+
+  rate_limit_reset(&rlim_duty, 0.0f);
 
   return 0;
 }

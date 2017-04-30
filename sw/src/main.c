@@ -12,7 +12,9 @@
 #include "adc.h"
 #include "ext.h"
 #include "inverter.h"
+#include "control.h"
 #include "modes.h"
+#include "speed_control.h"
 #include "position.h"
 
 static void SystemClock_Config(void);
@@ -49,6 +51,7 @@ int main(void)
   modes_init();
   position_init();
   ivtr_init();
+  spdctrl_init();
 
   uart_init();
   com_init();
@@ -69,18 +72,22 @@ void application_task(void *p)
   uint32_t lcm_ms;
   uint32_t task_period_ms;
 
-  const uint32_t modes_period_ms = 8u;
-  const uint32_t ivtr_period_ms  = 4u;
-  const uint32_t board_period_ms = 2u;
+  const uint32_t modes_period_ms    = 8u;
+  const uint32_t inverter_period_ms = 4u;
+  const uint32_t board_period_ms    = 2u;
+  const uint32_t control_period_ms  = 1u;
 
-  task_period_ms = ivtr_period_ms;
-  lcm_ms = lcm(task_period_ms, ivtr_period_ms);
+  task_period_ms = inverter_period_ms;
+  lcm_ms = lcm(task_period_ms, inverter_period_ms);
 
   task_period_ms = MIN(task_period_ms, modes_period_ms);
   lcm_ms = lcm(lcm_ms, modes_period_ms);
 
   task_period_ms = MIN(task_period_ms, board_period_ms);
   lcm_ms = lcm(lcm_ms, board_period_ms);
+
+  task_period_ms = MIN(task_period_ms, control_period_ms);
+  lcm_ms = lcm(lcm_ms, control_period_ms);
 
   static uint32_t task_ticker = 0;
 
@@ -96,8 +103,12 @@ void application_task(void *p)
       modes_step(modes_period_ms);
     }
 
-    if (0u == (task_ticker % ivtr_period_ms)) {
-      ivtr_step(ivtr_period_ms);
+    if (0u == (task_ticker % control_period_ms)) {
+      ctrl_step(control_period_ms);
+    }
+
+    if (0u == (task_ticker % inverter_period_ms)) {
+      ivtr_step(inverter_period_ms);
     }
 
     m_cpu_utilization_perc = rt_get_cpu_load();

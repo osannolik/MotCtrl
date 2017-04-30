@@ -233,6 +233,11 @@ float position_get_angle_est_deg(void)
   return m_pos_angle_est_deg;
 }
 
+float position_get_speed_raw_erpm(void)
+{
+  return m_pos_speed_raw_erpm;
+}
+
 float position_get_speed_est_erpm(void)
 {
   float speed_est = 0.0f;

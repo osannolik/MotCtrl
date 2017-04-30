@@ -47,6 +47,7 @@ float position_get_speed_est_erpm(void);
 void position_angle_est_reset_to(const float angle_0);
 float position_angle_est_update(const float period_s);
 void position_speed_est_update(const float speed_raw);
+float position_get_speed_raw_erpm(void);
 void position_speed_est_reset(void);
 float wrap_to_range(const float low, const float high, float x);
 
