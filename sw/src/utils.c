@@ -7,6 +7,7 @@
 
 #include "utils.h"
 
+/* TODO: Add initial behavior */
 float rate_limit(rate_limit_t * const r, const float x, const float dx_min, const float dx_max)
 {
   const float dx = x - r->x_prev;

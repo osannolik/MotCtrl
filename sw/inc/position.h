@@ -14,6 +14,8 @@
  * position and the stator flux vectors that can be obtained by the 6-step BLDC modulation.
  * I.e. 30 degrees offset corresponds to the case where applying a stationary vector
  * will align the rotor to the center of two hall sensors state changes.
+ * Another way of defining this is the angle between the phase-to-phase EMF zero crossing 
+ * and the hall transition. 
  * Range 0-30.
  */
 #define POS_HALL_SENSOR_OFFSET_DEG      (30)

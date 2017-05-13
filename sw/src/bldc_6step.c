@@ -13,6 +13,34 @@ static volatile uint8_t current_step = STEP_OFF;
 
 static bldc_cal_state_t cal_state = CAL_NOT_PERFORMED;
 
+/* Notes on different inverter switching modes:
+ * 
+ * Assuming 6-step control of a BLDC motor:
+ * 
+ * 1. Independent/Complementary Unipolar Switching (2 quadrant operation)
+ *    (one half is complementary while the other independent, "active freewheeling")
+ *    + Lower switching losses
+ *    + Lower bus ripple
+ *    - Short time for sampling with low duty
+ *    - Nasty EMF waveform
+ * 
+ * 2. Complementary Bipolar Switching (4 quadrant operation)
+ *    + 4 quadrant
+ *    + Sampling is easy
+ *    + Lower ripple for sensing EMF on open phase
+ *    - Worse bus ripple
+ *    - Higher losses
+ *
+ * 3. Complementary Unipolar Switching (4 quadrant operation)
+ *    + 4 quadrant
+ *    + Lower switching losses
+ *    + Lowest bus ripple
+ *    + Effectively twice the freq (if centered and symmetric duty)
+ *    - Sampling not as trivial
+ *
+ * TODO: Maybe implement 2 and 3? 
+ */
+
 static void (* const commutation_steps_ch3[NUMBER_OF_STEPS])(void) =
 {
   /* Use index 0 for gate off */
@@ -51,6 +79,48 @@ static void (* const commutation_steps_ch1[NUMBER_OF_STEPS])(void) =
   [STEP_5] = pwm_ch1_off,
   [STEP_6] = pwm_ch1_sink
 };
+
+#if 0
+/* Complementary Bipolar Switching experiment */
+static void (* const commutation_steps_ch3[NUMBER_OF_STEPS])(void) =
+{
+  /* Use index 0 for gate off */
+  [STEP_OFF] = pwm_ch3_off,
+  /* Normal steps */
+  [STEP_1] = pwm_ch3_complementary_pos, 
+  [STEP_2] = pwm_ch3_complementary_pos, 
+  [STEP_3] = pwm_ch3_off,
+  [STEP_4] = pwm_ch3_complementary_neg, 
+  [STEP_5] = pwm_ch3_complementary_neg, 
+  [STEP_6] = pwm_ch3_off
+};
+
+static void (* const commutation_steps_ch2[NUMBER_OF_STEPS])(void) =
+{
+  /* Use index 0 for gate off */
+  [STEP_OFF] = pwm_ch2_off,
+  /* Normal steps */
+  [STEP_1] = pwm_ch2_off,
+  [STEP_2] = pwm_ch2_complementary_neg, 
+  [STEP_3] = pwm_ch2_complementary_neg, 
+  [STEP_4] = pwm_ch2_off,
+  [STEP_5] = pwm_ch2_complementary_pos, 
+  [STEP_6] = pwm_ch2_complementary_pos, 
+};
+
+static void (* const commutation_steps_ch1[NUMBER_OF_STEPS])(void) =
+{
+  /* Use index 0 for gate off */
+  [STEP_OFF] = pwm_ch1_off,
+  /* Normal steps */
+  [STEP_1] = pwm_ch1_complementary_neg, 
+  [STEP_2] = pwm_ch1_off,
+  [STEP_3] = pwm_ch1_complementary_pos, 
+  [STEP_4] = pwm_ch1_complementary_pos, 
+  [STEP_5] = pwm_ch1_off,
+  [STEP_6] = pwm_ch1_complementary_neg, 
+};
+#endif
 
 static uint8_t hall_state_to_step_map[NUMBER_OF_DIRS][POS_NUMBER_OF_HALL_STATES] =
 {

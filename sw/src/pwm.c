@@ -11,6 +11,7 @@
 #include "debug.h"
 #include "calmeas.h"
 
+
 /* Measurements */
 CALMEAS_SYMBOL(uint32_t, m_pwm_period, 0, "");
 
@@ -272,6 +273,36 @@ void pwm_update_event(void)
 void pwm_break_event(void)
 {
   HAL_TIM_GenerateEvent(&TIMhandle, TIM_EVENTSOURCE_BREAK);
+}
+
+void pwm_ch1_complementary_pos(void) {
+  set_oc_mode_ch1(TIMhandle.Instance, TIM_OCMODE_PWM1);
+  set_ccxe_ch1(TIMhandle.Instance, TIM_CCx_ENABLE, TIM_CCxN_ENABLE);
+}
+
+void pwm_ch1_complementary_neg(void) {
+  set_oc_mode_ch1(TIMhandle.Instance, TIM_OCMODE_PWM2);
+  set_ccxe_ch1(TIMhandle.Instance, TIM_CCx_ENABLE, TIM_CCxN_ENABLE);
+}
+
+void pwm_ch2_complementary_pos(void) {
+  set_oc_mode_ch2(TIMhandle.Instance, TIM_OCMODE_PWM1);
+  set_ccxe_ch2(TIMhandle.Instance, TIM_CCx_ENABLE, TIM_CCxN_ENABLE);
+}
+
+void pwm_ch2_complementary_neg(void) {
+  set_oc_mode_ch2(TIMhandle.Instance, TIM_OCMODE_PWM2);
+  set_ccxe_ch2(TIMhandle.Instance, TIM_CCx_ENABLE, TIM_CCxN_ENABLE);
+}
+
+void pwm_ch3_complementary_pos(void) {
+  set_oc_mode_ch3(TIMhandle.Instance, TIM_OCMODE_PWM1);
+  set_ccxe_ch3(TIMhandle.Instance, TIM_CCx_ENABLE, TIM_CCxN_ENABLE);
+}
+
+void pwm_ch3_complementary_neg(void) {
+  set_oc_mode_ch3(TIMhandle.Instance, TIM_OCMODE_PWM2);
+  set_ccxe_ch3(TIMhandle.Instance, TIM_CCx_ENABLE, TIM_CCxN_ENABLE);
 }
 
 void pwm_ch3_off(void) {
