@@ -24,10 +24,52 @@
 
 #define HALL_IRQ_PRIO         (0x03u)
 
+
+/* The hall sensor offset is here defined as the smallest angle between the sensor
+ * position and the stator flux vectors that can be obtained by the 6-step BLDC modulation.
+ * I.e. 30 degrees offset corresponds to the case where applying a stationary vector
+ * will align the rotor to the center of two hall sensors state changes.
+ * Another way of defining this is the angle between the phase-to-phase EMF zero crossing 
+ * and the hall transition. 
+ * Range 0-30.
+ */
+#define HALL_SENSOR_OFFSET_DEG      (30)
+
+/* When the offset is non-zero then it is required to delay the commutation in order
+ * to get a stator flux vector that creates an angle to the rotor that varies from 120-60 deg.
+ * The time of delay is nominally set to half the time the previous commutation cycle took.
+ */
+#define HALL_COMMUTATION_DELAY_PERC (HALL_SENSOR_OFFSET_DEG*0.5f/30.0f)
+
+#define NUMBER_OF_HALL_STATES       (8)
+
+
+enum {
+  DIR_CW   = 0,
+  DIR_CCW  = 1,
+  DIR_NONE = 2,
+  NUMBER_OF_DIRS = 3
+};
+
+typedef struct {
+  uint8_t current;
+  uint8_t previous;
+} hall_state_t;
+
+
 int hall_init(void);
-void hall_individual_states(uint8_t *h1, uint8_t *h2, uint8_t *h3);
-void hall_start(void);
-uint8_t hall_state(void);
+uint8_t hall_get_state(void);
+uint8_t hall_get_direction(void);
+float hall_get_speed_raw_erpm(void);
+float hall_get_speed_est_erpm(void);
+void hall_speed_est_reset_to(const float speed_0);
+float hall_state_to_angle_deg(hall_state_t * const state);
+float hall_angle_est_update(const float period_s);
+float hall_get_angle_est_rad(void);
+void hall_angle_est_reset_to(const float angle_0);
 void hall_set_commutation_indication_cb(void (* callback)(uint8_t));
+void hall_calculate_direction_map(void);
+void hall_map_state_to_angle(const uint8_t hall_state, const float angle);
+
 
 #endif /* HALL_H_ */
