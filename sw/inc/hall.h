@@ -42,7 +42,7 @@
 #define HALL_COMMUTATION_DELAY_PERC (HALL_SENSOR_OFFSET_DEG*0.5f/30.0f)
 
 #define NUMBER_OF_HALL_STATES       (8)
-
+#define HALL_NUMBER_OF_COMMUTATIONS (6)
 
 enum {
   DIR_CW   = 0,
@@ -59,17 +59,14 @@ typedef struct {
 
 int hall_init(void);
 uint8_t hall_get_state(void);
-uint8_t hall_get_direction(void);
-float hall_get_speed_raw_erpm(void);
-float hall_get_speed_est_erpm(void);
-void hall_speed_est_reset_to(const float speed_0);
+float hall_get_direction(void);
+float hall_get_speed_raw_radps(void);
+float hall_get_angle_raw_rad(void);
 float hall_state_to_angle_deg(hall_state_t * const state);
-float hall_angle_est_update(const float period_s);
-float hall_get_angle_est_rad(void);
-void hall_angle_est_reset_to(const float angle_0);
-void hall_set_commutation_indication_cb(void (* callback)(uint8_t));
 void hall_calculate_direction_map(void);
 void hall_map_state_to_angle(const uint8_t hall_state, const float angle);
+void hall_set_commutation_indication_cb(void (* callback)(uint8_t));
+void hall_set_state_change_indication_cb(void (* callback)(uint8_t));
 
 
 #endif /* HALL_H_ */

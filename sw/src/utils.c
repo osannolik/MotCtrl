@@ -42,3 +42,47 @@ int gcd(int a, int b) {
 int lcm(int a, int b) {
   return (a * b / gcd(a, b));
 }
+
+float wrap_to_range_f(const float low, const float high, float x)
+{
+  /* Wrap x into interval [low, high) */
+  /* Assumes high > low */
+
+  const float range = high - low;
+
+  if (range > 0.0f) {
+    while (x >= high) {
+      x -= range;
+    }
+
+    while (x < low) {
+      x += range;
+    }
+  } else {
+    x = low;
+  }
+
+  return x;
+}
+
+int wrap_to_range_i(const int low, const int high, int x)
+{
+  /* Wrap x into interval [low, high) */
+  /* Assumes high > low */
+
+  const int range = high - low;
+
+  if (range > 0) {
+    while (x >= high) {
+      x -= range;
+    }
+
+    while (x < low) {
+      x += range;
+    }
+  } else {
+    x = low;
+  }
+
+  return x;
+}

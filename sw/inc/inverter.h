@@ -10,7 +10,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "position.h"
 
 void ivtr_step(uint32_t period_ms);
 void ivtr_request_duty_cycle(float duty_req);

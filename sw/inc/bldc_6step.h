@@ -10,7 +10,6 @@
 
 #include <stdint.h>
 #include <stddef.h>
-#include "position.h"
 
 typedef enum {
   STEP_OFF        = 0,
@@ -33,7 +32,7 @@ typedef enum {
 } bldc_cal_state_t;
 
 uint8_t bldc6s_current_step(void);
-void bldc6s_commutation(const pos_direction_t direction, const uint8_t current_hall_state);
+void bldc6s_commutation(const uint8_t direction, const uint8_t current_hall_state);
 inline void bldc6s_set_commutation_step(const uint8_t step);
 void bldc6s_hall_calibration_step(uint32_t period_ms);
 bldc_cal_state_t bldc6s_cal_state(void);

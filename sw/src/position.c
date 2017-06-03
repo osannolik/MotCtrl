@@ -6,361 +6,279 @@
  */
 
 #include "position.h"
-#include "hall.h"
+#include "encoder.h"
+//#include "utils.h"
+#include "filter.h"
 
 #include "calmeas.h"
 
-#define NUMBER_OF_COMMUTATIONS (6u)
-#define ANGLE_UNDEFINED (-1.0f)
- 
+static filter_speed_pll_t encoder_speed_filter;
+static hall_filter_t hall_filter;
+
 /* Measurements */
-CALMEAS_SYMBOL(uint8_t, m_pos_hall1, 0, "");
-CALMEAS_SYMBOL(uint8_t, m_pos_hall2, 0, "");
-CALMEAS_SYMBOL(uint8_t, m_pos_hall3, 0, "");
-CALMEAS_SYMBOL(uint8_t, m_pos_hallstate, 0, "");
-CALMEAS_SYMBOL(uint32_t, m_pos_speed_timer, 0, "");
-#define CALMEAS_TYPECODE_pos_direction_t   CALMEAS_TYPECODE_uint8_t
-#define CALMEAS_MEMSEC_pos_direction_t     CALMEAS_MEMSEC_uint8_t
-CALMEAS_SYMBOL(pos_direction_t, m_pos_direction, DIR_NONE, "");
-CALMEAS_SYMBOL(float, m_pos_angle_est_deg, 0.0f, "");
-CALMEAS_SYMBOL(float, m_pos_speed_raw_erpm, 0.0f, "");
-CALMEAS_SYMBOL(float, m_pos_speed_est_erpm, 0.0f, "");
+CALMEAS_SYMBOL(float, m_pos_encoder_speed_filtered, 0.0f, "");
+CALMEAS_SYMBOL(float, m_pos_hall_speed_filtered, 0.0f, "");
+CALMEAS_SYMBOL(float, m_pos_hall_angle_filtered, 0.0f, "");
 
 /* Parameters */
-CALMEAS_SYMBOL(float, p_commutation_delay, POS_HALL_COMMUTATION_DELAY_PERC, "");
+CALMEAS_SYMBOL(float, p_pos_encoder_filter_Kp, 1500.0f, "");
+CALMEAS_SYMBOL(float, p_pos_encoder_filter_Ki, 1000.0f, "");
 
 
-static void (* commutation_indication_cb)(uint8_t hall_state) = NULL;
-static float hall_state_to_angle_map_cw[POS_NUMBER_OF_HALL_STATES];
-static float hall_state_to_angle_map_ccw[POS_NUMBER_OF_HALL_STATES];
-static pos_direction_t hall_state_to_direction[POS_NUMBER_OF_HALL_STATES][POS_NUMBER_OF_HALL_STATES];
-static TIM_HandleTypeDef TIMhandle;
-static uint8_t hallstate_prev = DIR_NONE;
-static float speed_timer_resolution_s;
-static float speed_raw_per_commutation[NUMBER_OF_COMMUTATIONS];
+static uint8_t sensor;
 
-int position_init(void)
+
+static void hall_filter_init(hall_filter_t * const h);
+static void set_hall_filter_speed(hall_filter_t * const h, const float speed);
+static void set_hall_filter_angle(hall_filter_t * const h, const float angle);
+static void hall_state_change(uint8_t state);
+static float get_hall_speed_filtered(hall_filter_t * const h);
+static float get_hall_angle_filtered(hall_filter_t * const h);
+static float update_hall_speed_filter(hall_filter_t * const h, const float speed_raw);
+static float update_hall_angle_filter(hall_filter_t * const h, const float dt);
+
+
+static void hall_filter_init(hall_filter_t * const h)
 {
-  GPIO_InitTypeDef GPIOinitstruct;
-
-  __HAL_RCC_TIM4_CLK_ENABLE();
-
-  HALL_SENSOR_H1_CLK_EN;
-  HALL_SENSOR_H2_CLK_EN;
-  HALL_SENSOR_H3_CLK_EN;
-
-  GPIOinitstruct.Mode      = GPIO_MODE_AF_PP;
-  GPIOinitstruct.Pull      = GPIO_NOPULL;
-  GPIOinitstruct.Speed     = GPIO_SPEED_HIGH;
-  GPIOinitstruct.Alternate = GPIO_AF2_TIM4;
-
-  GPIOinitstruct.Pin = HALL_SENSOR_H1_PIN;
-  HAL_GPIO_Init(HALL_SENSOR_H1_PORT, &GPIOinitstruct);
-
-  GPIOinitstruct.Pin = HALL_SENSOR_H2_PIN;
-  HAL_GPIO_Init(HALL_SENSOR_H2_PORT, &GPIOinitstruct);
-
-  GPIOinitstruct.Pin = HALL_SENSOR_H3_PIN;
-  HAL_GPIO_Init(HALL_SENSOR_H3_PORT, &GPIOinitstruct);
-
-  /* Initialize TIM4 peripheral as follows:
-   *
-   * - Hall sensor inputs are connected to Ch1, Ch2, and Ch3.
-   * - TI1 is xor of all three channels.
-   * - Input capture IC1 is configured to capture at both edges of TI1.
-   * - TI1F_ED = TI1 is set to trigger a reset of the timer.
-   * - OC2 is configured to create a pulse delayed from the TRC = TI1F_ED event.
-   * - Interrupt at input capture and delayed pulse event.
-   *
-   * This way it is possible to measure the time between two consecutive
-   * hall sensor changes and thus to estimate the speed of the motor.
-   * Also, it is possible to trigger the commutation of the BLDC based on
-   * the IC (or delayed pulse) interrupt.
-   *
-   * Configuration:
-   *   APB1 is the clock source = 2*APB1 (2*45 MHz)
-   *   Using a prescaler of 225 and using all 16 bits yields:
-   *   - Resolution = 225 / 90 MHz = 2.5 us
-   *   - Time until overflow = 2^16 * 225 / 90 MHz = 0.16384 s
-   * This allows for a speed down to 61 rpm before an overflow occurs.
-   * At 10000 rpm, the resolution will be approx 2.5 us * (10000^2)/10 = 25 rpm
-   */
-
-  const uint32_t prescaler = 225u;
-
-  TIMhandle.Instance               = TIM4;
-  TIMhandle.Init.Period            = 0xFFFF;
-  TIMhandle.Init.Prescaler         = prescaler - 1;
-  TIMhandle.Init.ClockDivision     = 0;
-  TIMhandle.Init.CounterMode       = TIM_COUNTERMODE_UP;
-  TIMhandle.Init.RepetitionCounter = 0;
-
-  speed_timer_resolution_s = ((float) prescaler) / ((float) 2.0f * HAL_RCC_GetPCLK1Freq());
-
-  TIM_HallSensor_InitTypeDef TIMHallSensorInithandle;
-  TIMHallSensorInithandle.Commutation_Delay = 1u;
-  TIMHallSensorInithandle.IC1Filter         = 0x0Fu;
-  TIMHallSensorInithandle.IC1Polarity       = TIM_ICPOLARITY_BOTHEDGE;
-  TIMHallSensorInithandle.IC1Prescaler      = TIM_ICPSC_DIV1;
-  HAL_TIMEx_HallSensor_Init(&TIMhandle, &TIMHallSensorInithandle);
-
-  HAL_TIMEx_HallSensor_Start_IT(&TIMhandle);
-  //__HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_CC2);
-
-  TIMhandle.Instance->CR1 |= 0x4u; // Only counter overflow/underflow generates an update interrupt
-  __HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_UPDATE);
-
-  NVIC_SetPriority(TIM4_IRQn, HALL_IRQ_PRIO);
-  NVIC_EnableIRQ(TIM4_IRQn);
-
-  uint8_t i, j;
-  for (i=0; i<POS_NUMBER_OF_HALL_STATES; i++) {
-    for (j=0; j<POS_NUMBER_OF_HALL_STATES; j++) {
-      hall_state_to_direction[i][j] = DIR_NONE;
-      hall_state_to_direction[i][j] = DIR_NONE;
-    }
-
-    hall_state_to_angle_map_cw[i] = ANGLE_UNDEFINED;
-    hall_state_to_angle_map_ccw[i] = ANGLE_UNDEFINED;
-  }
-
-  for (i=0; i<NUMBER_OF_COMMUTATIONS; i++) {
-    speed_raw_per_commutation[i] = 0.0f;
-  }
-
-  return 0;
+  set_hall_filter_speed(h, 0.0f);
+  h->commutation_counter = 0;
+  h->angle_est = 0.0f;
 }
 
-static void hall_commutation(void)
+static void set_hall_filter_speed(hall_filter_t * const h, const float speed)
 {
-  if (commutation_indication_cb != NULL) {
-    commutation_indication_cb(m_pos_hallstate);
+  uint8_t i;
+  for (i=0; i<HALL_NUMBER_OF_COMMUTATIONS; i++) {
+    h->speed_raw_per_commutation[i] = speed;
   }
+
+  h->speed_est = 0.0f;
 }
 
-static float speed_raw_erpm(const uint32_t speed_timer, const pos_direction_t direction)
+static void set_hall_filter_angle(hall_filter_t * const h, const float angle)
 {
-  if (speed_timer == 0.0f) {
-    return 0.0f;
-  }
-
-  float speed_raw = 10.0f / ((float) speed_timer * speed_timer_resolution_s);
-
-  if (direction == DIR_CCW) {
-    speed_raw = -speed_raw;
-  }
-
-  return speed_raw;
+  h->angle_est = angle;
 }
 
-static float angle_raw_deg(const uint8_t hall_state, const pos_direction_t direction) {
-  float angle_raw = 0.0f;
+static void hall_state_change(uint8_t state)
+{
+  (void) state;
 
-  switch (direction) {
-    case DIR_CW:
-      angle_raw = hall_state_to_angle_map_cw[hall_state];
+  position_update_hall_speed_filter();
+
+  set_hall_filter_angle(&hall_filter, hall_get_angle_raw_rad());
+}
+
+static float get_hall_speed_filtered(hall_filter_t * const h)
+{
+  if (hall_get_speed_raw_radps() == 0.0f) {
+    /* When the motor stops (speed=0), there are no more changes in hall state,
+     * therefore the filter does not update anymore. Do it manually! */
+    set_hall_filter_speed(h, 0.0f);
+  }
+
+  return h->speed_est;
+}
+
+static float get_hall_angle_filtered(hall_filter_t * const h)
+{
+  return h->angle_est;
+}
+
+static float update_hall_speed_filter(hall_filter_t * const h, const float speed_raw)
+{
+  h->commutation_counter++;
+  if (h->commutation_counter >= HALL_NUMBER_OF_COMMUTATIONS) {
+    h->commutation_counter = 0;
+  }
+  h->speed_raw_per_commutation[h->commutation_counter] = speed_raw;
+
+  float sum = 0.0f;
+  uint8_t c;
+  for (c=0; c<HALL_NUMBER_OF_COMMUTATIONS; c++) {
+    sum += h->speed_raw_per_commutation[c];
+  }
+
+  h->speed_est = sum/((float) HALL_NUMBER_OF_COMMUTATIONS);
+
+  return h->speed_est;
+}
+
+static float update_hall_angle_filter(hall_filter_t * const h, const float dt)
+{
+  h->angle_est += (h->speed_est) * dt;
+
+  return h->angle_est;
+}
+
+int position_init(const uint8_t source_sensor)
+{
+  int rv = 0;
+
+  sensor = source_sensor;
+
+  switch (sensor)
+  {
+    case SENSORLESS:
       break;
 
-    case DIR_CCW:
-      angle_raw = hall_state_to_angle_map_ccw[hall_state];
+    case HALL:
+      hall_filter_init(&hall_filter);
+      rv = hall_init();
+      hall_set_state_change_indication_cb(hall_state_change);
       break;
-    case DIR_NONE:
+
+    case ENCODER:
+      filter_speed_pll_init(&encoder_speed_filter, p_pos_encoder_filter_Kp, p_pos_encoder_filter_Ki);
+      rv = encoder_init();
       break;
 
     default:
       break;
   }
 
-  return angle_raw;
+  return rv;
 }
 
-static void angle_and_speed_update(TIM_HandleTypeDef * const htim)
+float position_get_angle(void)
 {
-  /* Prepare for commutation. Assume we need to wait a factor of the latest hall period */
-  m_pos_speed_timer = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_1); // Also clears IF
-  htim->Instance->CCR2 = (uint32_t) (((float) m_pos_speed_timer) * p_commutation_delay);
+  switch (sensor)
+  {
+    case SENSORLESS:
+      break;
 
-  hallstate_prev = m_pos_hallstate;
-  m_pos_hallstate = position_get_hall_state();
+    case HALL:
+      return get_hall_angle_filtered(&hall_filter);
 
-  m_pos_direction = position_get_direction();
+    case ENCODER:
+      return encoder_get_angle_rad();
 
-  if (m_pos_direction != DIR_NONE) {
-    m_pos_speed_raw_erpm = speed_raw_erpm(m_pos_speed_timer, m_pos_direction);
-    position_angle_est_reset_to(angle_raw_deg(m_pos_hallstate, m_pos_direction));
-  } else {
-    m_pos_speed_raw_erpm = 0.0f;
+    default:
+      break;
   }
 
-  position_speed_est_update(m_pos_speed_raw_erpm);
-
-  m_pos_speed_est_erpm = position_get_speed_est_erpm();
+  return 0.0f;
 }
 
-void position_speed_est_reset(void)
+float position_get_angle_raw(void)
 {
-  uint8_t c = 0;
-  for (c=0; c<NUMBER_OF_COMMUTATIONS; c++) {
-    speed_raw_per_commutation[c] = 0.0f;
-  }
-}
+  switch (sensor)
+  {
+    case SENSORLESS:
+      break;
 
-void position_speed_est_update(const float speed_raw)
-{
-  static uint8_t c = 0;
+    case HALL:
+      return hall_get_angle_raw_rad();
 
-  speed_raw_per_commutation[c] = speed_raw;
+    case ENCODER:
+      return encoder_get_angle_rad();
 
-  if (++c >= NUMBER_OF_COMMUTATIONS) {
-    c = 0;
-  }
-}
-
-void position_angle_est_reset_to(const float angle_0)
-{
-  m_pos_angle_est_deg = angle_0;
-}
-
-float position_angle_est_update(const float period_s)
-{
-  m_pos_angle_est_deg += position_get_speed_est_erpm() * RPM_TO_DEGPS * period_s ;
-
-  return m_pos_angle_est_deg;
-}
-
-float position_get_angle_est_deg(void)
-{
-  return m_pos_angle_est_deg;
-}
-
-float position_get_speed_raw_erpm(void)
-{
-  return m_pos_speed_raw_erpm;
-}
-
-float position_get_speed_est_erpm(void)
-{
-  float speed_est = 0.0f;
-
-  uint8_t c;
-  for (c=0; c<NUMBER_OF_COMMUTATIONS; c++) {
-    speed_est += speed_raw_per_commutation[c];
+    default:
+      break;
   }
 
-  return speed_est/((float) NUMBER_OF_COMMUTATIONS);
+  return 0.0f;
 }
 
-void TIM4_IRQHandler(void)
+float position_get_speed(void)
 {
-  /* Input capture (xor of hall sensor):
-   * Determine current position and calculate speed! */
-  if (__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_CC1) && \
-      __HAL_TIM_GET_IT_SOURCE(&TIMhandle, TIM_IT_CC1)) {
-    __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_IT_CC1);
+  switch (sensor)
+  {
+    case SENSORLESS:
+      break;
 
-    angle_and_speed_update(&TIMhandle);
+    case HALL:
+      return get_hall_speed_filtered(&hall_filter);
 
-    __HAL_TIM_ENABLE_IT(&TIMhandle, TIM_IT_CC2);
+    case ENCODER:
+      return filter_speed_pll_get_speed(&encoder_speed_filter);
+
+    default:
+      break;
   }
 
-  /* Output compare is creating a pulse delayed from the input capture event:
-   * Trigger a BLDC commutation! */
-  if(__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_CC2) && \
-     __HAL_TIM_GET_IT_SOURCE(&TIMhandle, TIM_IT_CC2)) {
-    __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_IT_CC2);
+  return 0.0f;
+}
 
-    hall_commutation();
+float position_get_speed_raw(void)
+{
+  switch (sensor)
+  {
+    case SENSORLESS:
+      break;
 
-    __HAL_TIM_DISABLE_IT(&TIMhandle, TIM_IT_CC2);
+    case HALL:
+      return hall_get_speed_raw_radps();
+
+    case ENCODER:
+      return encoder_get_speed_raw_radps();
+
+    default:
+      break;
   }
 
-  /* Input capture timer has overflowed, assume speed is zero */
-  if(__HAL_TIM_GET_FLAG(&TIMhandle, TIM_FLAG_UPDATE) && \
-     __HAL_TIM_GET_IT_SOURCE(&TIMhandle, TIM_IT_UPDATE)) {
-    __HAL_TIM_CLEAR_IT(&TIMhandle, TIM_FLAG_UPDATE);
-
-    position_speed_est_reset();
-    m_pos_speed_est_erpm = position_get_speed_est_erpm();
-    m_pos_speed_raw_erpm = 0.0f;
-  }
+  return 0.0f;
 }
 
-void position_set_hall_commutation_indication_cb(void (* callback)(uint8_t))
+float position_update_speed_filter(const float dt)
 {
-  commutation_indication_cb = callback;
-}
+  switch (sensor)
+  {
+    case SENSORLESS:
+      break;
 
-void position_hall_individual_states(uint8_t * const h1, uint8_t * const h2, uint8_t * const h3)
-{
-  *h1 = (uint8_t) ((HALL_SENSOR_H1_PORT->IDR & HALL_SENSOR_H1_PIN) == HALL_SENSOR_H1_PIN);
-  *h2 = (uint8_t) ((HALL_SENSOR_H2_PORT->IDR & HALL_SENSOR_H2_PIN) == HALL_SENSOR_H2_PIN);
-  *h3 = (uint8_t) ((HALL_SENSOR_H3_PORT->IDR & HALL_SENSOR_H3_PIN) == HALL_SENSOR_H3_PIN);
-}
+    case HALL:
+      return position_update_hall_speed_filter();
 
-static inline uint8_t form_hall_state(const uint8_t h1, const uint8_t h2, const uint8_t h3) {
-  return ((h3 << 2) | (h2 << 1) | (h1));
-}
+    case ENCODER:
+      return position_update_encoder_speed_filter(dt);
 
-uint8_t position_get_hall_state(void)
-{
-  position_hall_individual_states(&m_pos_hall1, &m_pos_hall2, &m_pos_hall3);
-  return form_hall_state(m_pos_hall1, m_pos_hall2, m_pos_hall3);
-}
-
-float wrap_to_range(const float low, const float high, float x)
-{
-  /* Wrap x into interval [low, high) */
-  /* Assumes high > low */
-
-  const float range = high - low;
-
-  if (range > 0.0f) {
-    while (x >= high) {
-      x -= range;
-    }
-
-    while (x < low) {
-      x += range;
-    }
-  } else {
-    x = low;
+    default:
+      break;
   }
 
-  return x;
+  return 0.0f;
 }
 
-void position_calculate_direction_map(void)
+float position_update_angle_filter(const float dt)
 {
-  /* An increasing angle is defined as clockwise direction */
+  switch (sensor)
+  {
+    case SENSORLESS:
+      break;
 
-  float b;
-  uint8_t h, h_next;
+    case HALL:
+      return position_update_hall_angle_filter(dt);
 
-  for (h=0; h<POS_NUMBER_OF_HALL_STATES; h++) {
+    case ENCODER:
+      break;
 
-    b = hall_state_to_angle_map_ccw[h];
-
-    if (0.0f<=b && b<360.0f) {
-      for (h_next=0; h_next<POS_NUMBER_OF_HALL_STATES; h_next++) {
-        if (hall_state_to_angle_map_cw[h_next] == b) {
-          hall_state_to_direction[h][h_next] = DIR_CW;
-          hall_state_to_direction[h_next][h] = DIR_CCW;
-        }
-      }
-    }
-
+    default:
+      break;
   }
+
+  return 0.0f;
 }
 
-void position_map_hall_state_to_angle(const uint8_t hall_state, const float angle)
+float position_update_encoder_speed_filter(const float dt)
 {
-  if (hall_state < POS_NUMBER_OF_HALL_STATES) {
-    hall_state_to_angle_map_cw[hall_state]  = wrap_to_range(0.0f, 360.0f, angle + 0.0f);
-    hall_state_to_angle_map_ccw[hall_state] = wrap_to_range(0.0f, 360.0f, angle + 60.0f);
-  }
+  filter_speed_pll_set_gains(&encoder_speed_filter, p_pos_encoder_filter_Kp, p_pos_encoder_filter_Ki);
+
+  m_pos_encoder_speed_filtered = filter_speed_pll_update(&encoder_speed_filter, dt, encoder_get_angle_rad());
+
+  return m_pos_encoder_speed_filtered;
 }
 
-pos_direction_t position_get_direction(void)
+float position_update_hall_angle_filter(const float dt)
 {
-  return hall_state_to_direction[hallstate_prev][m_pos_hallstate];
+  m_pos_hall_angle_filtered = update_hall_angle_filter(&hall_filter, dt);
+
+  return m_pos_hall_angle_filtered;
+}
+
+float position_update_hall_speed_filter(void)
+{
+  m_pos_hall_speed_filtered = update_hall_speed_filter(&hall_filter, hall_get_speed_raw_radps());
+
+  return m_pos_hall_speed_filtered;
 }

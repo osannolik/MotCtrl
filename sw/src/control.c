@@ -34,7 +34,7 @@ void ctrl_step(const uint32_t period_ms)
       break;
 
     case CTRL_MODE_SPEED:
-      u = spdctrl_controller(position_get_speed_raw_erpm(),
+      u = spdctrl_controller(position_get_speed_raw(),
                              p_ctrl_speed_setpoint,
                              (float) period_ms * 0.001f);
       break;

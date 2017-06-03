@@ -6,6 +6,7 @@
  */
 
 #include "inverter.h"
+#include "position.h"
 #include "bldc_6step.h"
 #include "utils.h"
 #include "modes.h"
@@ -22,9 +23,7 @@
 /* Measurements */
 CALMEAS_SYMBOL(float, m_ivtr_duty_set, 0, "");
 CALMEAS_SYMBOL(float, m_ivtr_duty_req, 0, "");
-#define CALMEAS_TYPECODE_pos_direction_t   CALMEAS_TYPECODE_uint8_t
-#define CALMEAS_MEMSEC_pos_direction_t     CALMEAS_MEMSEC_uint8_t
-CALMEAS_SYMBOL(pos_direction_t, m_ivtr_direction_req, DIR_NONE, "");
+CALMEAS_SYMBOL(uint8_t, m_ivtr_direction_req, DIR_NONE, "");
 CALMEAS_SYMBOL(float, m_ivtr_i_a,   0.0f, "");
 CALMEAS_SYMBOL(float, m_ivtr_i_b,   0.0f, "");
 CALMEAS_SYMBOL(float, m_ivtr_i_c,   0.0f, "");
@@ -56,7 +55,7 @@ static rate_limit_t rlim_duty;
 
 static void direction_commutation(const float duty_req)
 {
-  static pos_direction_t prev_direction = DIR_NONE;
+  static uint8_t prev_direction = DIR_NONE;
 
   float direction;
 
@@ -70,7 +69,7 @@ static void direction_commutation(const float duty_req)
 
   if (prev_direction != direction) {
     m_ivtr_direction_req = direction;
-    bldc6s_commutation(direction, position_get_hall_state());
+    bldc6s_commutation(direction, hall_get_state());
   }
 
   prev_direction = direction;
@@ -88,7 +87,7 @@ static void ivtr_period_by_period_handler(void)
   m_ivtr_emf_c = adc_get_measurement(ADC_EMF_C);
 
 
-  (void) position_angle_est_update(1.0f/((float)PWM_FREQUENCY_HZ));
+  (void) position_update_hall_angle_filter(1.0f/((float)PWM_FREQUENCY_HZ));
 
 
   float i_tot;
@@ -272,7 +271,7 @@ void ivtr_request_duty_cycle(float duty_req)
 int ivtr_init(void)
 {
   adc_set_new_samples_indication_cb(ivtr_period_by_period_handler);
-  position_set_hall_commutation_indication_cb(hall_commutation);
+  hall_set_commutation_indication_cb(hall_commutation);
 
   bldc6s_init();
 

@@ -6,6 +6,7 @@
  */
 
 #include "bldc_6step.h"
+#include "hall.h"
 #include "inverter.h"
 #include "pwm.h"
 
@@ -122,7 +123,7 @@ static void (* const commutation_steps_ch1[NUMBER_OF_STEPS])(void) =
 };
 #endif
 
-static uint8_t hall_state_to_step_map[NUMBER_OF_DIRS][POS_NUMBER_OF_HALL_STATES] =
+static uint8_t hall_state_to_step_map[NUMBER_OF_DIRS][NUMBER_OF_HALL_STATES] =
 {
   [DIR_NONE] = {0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u},
   [DIR_CW]   = {0u, 1u, 5u, 6u, 3u, 2u, 4u, 0u},
@@ -188,7 +189,7 @@ static const uint8_t cal_step_to_commutation_step[NUMBER_OF_DIRS][NUMBER_OF_STEP
 };
 #endif /* (POS_HALL_SENSOR_OFFSET_DEG > 15) */
 
-void bldc6s_commutation(const pos_direction_t direction, const uint8_t current_hall_state)
+void bldc6s_commutation(const uint8_t direction, const uint8_t current_hall_state)
 {
   uint8_t next_step = hall_state_to_step_map[direction][current_hall_state];
 
@@ -251,9 +252,9 @@ void bldc6s_hall_calibration_step(uint32_t period_ms)
       } else {
         delay_ms = 0u;
 
-        hallstate = (int8_t) position_get_hall_state();
+        hallstate = (int8_t) hall_get_state();
 
-        position_map_hall_state_to_angle(hallstate, angle);
+        hall_map_state_to_angle(hallstate, angle);
 
         hall_state_to_step_map[DIR_CW][hallstate]  = cal_step_to_commutation_step[DIR_CW][step];
         hall_state_to_step_map[DIR_CCW][hallstate] = cal_step_to_commutation_step[DIR_CCW][step];
@@ -269,7 +270,7 @@ void bldc6s_hall_calibration_step(uint32_t period_ms)
 
     case CAL_CHECK:
       ivtr_request_duty_cycle(0.0f);
-      position_calculate_direction_map();
+      hall_calculate_direction_map();
       cal_state = CAL_OK;
       break;
 
@@ -291,7 +292,7 @@ int bldc6s_init(void)
 {
 #if 1
   uint8_t hall_state;
-  for (hall_state = 0; hall_state < POS_NUMBER_OF_HALL_STATES; hall_state++) {
+  for (hall_state = 0; hall_state < NUMBER_OF_HALL_STATES; hall_state++) {
     hall_state_to_step_map[DIR_NONE][hall_state] = STEP_OFF;
     hall_state_to_step_map[DIR_CW][hall_state]   = STEP_OFF;
     hall_state_to_step_map[DIR_CCW][hall_state]  = STEP_OFF;
