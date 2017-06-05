@@ -27,11 +27,6 @@ static float speed_timer_resolution_s;
 
 /* Measurements */
 CALMEAS_SYMBOL_BY_ADDRESS(uint8_t, m_hall_state_current, &(hall_state.current),  "");
-CALMEAS_SYMBOL_BY_ADDRESS(uint8_t, m_hall_state_previous, &(hall_state.previous),  "");
-CALMEAS_SYMBOL(uint8_t, m_hall_direction, DIR_NONE, "");
-CALMEAS_SYMBOL(float,   m_hall_angle_est_rad, 0.0f, "");
-CALMEAS_SYMBOL(float,   m_hall_speed_est_erpm, 0.0f, "");
-CALMEAS_SYMBOL(float,   m_hall_speed_raw_radps, 0.0f, "");
 
 /* Parameters */
 CALMEAS_SYMBOL(float, p_commutation_delay, HALL_COMMUTATION_DELAY_PERC, "");

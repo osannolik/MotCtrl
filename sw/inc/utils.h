@@ -28,7 +28,7 @@ int wrap_to_range_i(const int low, const int high, int x);
 #define DEGC_TO_KELVIN(degC)  ((degC)+273.15f)
 #define KELVIN_TO_DEGC(K)     ((K)-273.15f)
 
-#define PI                    (3.141592f)
+#define PI                    (3.1415926536f)
 #define DEG_TO_RAD(deg)       ((deg)*PI/180.0f)
 #define RAD_TO_DEG(rad)       ((rad)*180.0f/PI)
 
