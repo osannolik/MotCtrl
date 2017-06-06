@@ -108,7 +108,11 @@ static float update_hall_speed_filter(hall_filter_t * const h, const float speed
 
 static float update_hall_angle_filter(hall_filter_t * const h, const float dt)
 {
-  h->angle_est += (h->speed_est) * dt;
+  if (hall_get_speed_raw_radps() == 0.0f) {
+    h->angle_est = hall_get_angle_raw_rad();
+  } else {
+    h->angle_est = wrap_to_range_f(0.0f, 2.0f*PI, h->angle_est + (h->speed_est) * dt);
+  }
 
   return h->angle_est;
 }

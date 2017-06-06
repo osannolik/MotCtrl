@@ -48,7 +48,7 @@ int main(void)
   ext_init();
 
   modes_init();
-  position_init(ENCODER);
+  position_init(HALL);
   ivtr_init();
   spdctrl_init();
 
@@ -66,11 +66,14 @@ int main(void)
   return 0;
 }
 
-CALMEAS_SYMBOL(float, mdbg_pos_angle_rad, 0, "");
-CALMEAS_SYMBOL(float, mdbg_encoder_speed_raw_radps, 0, "");
-CALMEAS_SYMBOL(float, mdbg_encoder_speed_filtered, 0, "");
+#if 0
+CALMEAS_SYMBOL(float, mdbg_pos_angle, 0, "");
+CALMEAS_SYMBOL(float, mdbg_pos_speed, 0, "");
 
-#include "encoder.h"
+CALMEAS_SYMBOL(float, mdbg_pos_angle_raw, 0, "");
+CALMEAS_SYMBOL(float, mdbg_pos_speed_raw, 0, "");
+#endif
+
 void application_task(void *p)
 {
   uint32_t lcm_ms;
@@ -114,11 +117,12 @@ void application_task(void *p)
     if (0u == (task_ticker % inverter_period_ms)) {
       ivtr_step(inverter_period_ms);
     }
-
-    mdbg_pos_angle_rad = position_get_angle();
-    mdbg_encoder_speed_raw_radps = encoder_get_speed_raw_radps();
-    mdbg_encoder_speed_filtered = position_update_encoder_speed_filter(0.001f);
-
+#if 0
+    mdbg_pos_angle = position_get_angle();
+    mdbg_pos_angle_raw = position_get_angle_raw();
+    mdbg_pos_speed = position_get_speed();
+    mdbg_pos_speed_raw = position_get_speed_raw();
+#endif
     m_cpu_utilization_perc = rt_get_cpu_load();
 
     task_ticker += task_period_ms;

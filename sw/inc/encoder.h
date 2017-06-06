@@ -24,6 +24,7 @@
 #define ENCODER_INDEX_PORT   GPIOB
 #define ENCODER_INDEX_CLK_EN __HAL_RCC_GPIOB_CLK_ENABLE()
 
+#define ENCODER_IRQ_PRIO     (0x03u)
 
 #define ENCODER_PPR          (2048)
 

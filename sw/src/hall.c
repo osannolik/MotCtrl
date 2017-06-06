@@ -10,11 +10,12 @@
 #include "calmeas.h"
 
 
-#define ANGLE_UNDEFINED (-1.0f)
-
+#define ANGLE_UNDEFINED   (-1.0f)
+#define SPEED_COUNTER_MAX (0xFFFFu)
 
 static hall_state_t hall_state;
 static volatile uint8_t hall_capture_overflow;
+static volatile uint32_t speed_timer_cnt;
 static void (* commutation_indication_cb)(uint8_t hall_state) = NULL;
 static void (* state_change_indication_cb)(uint8_t hall_state) = NULL;
 static TIM_HandleTypeDef hall_timer;
@@ -89,7 +90,7 @@ int hall_init(void)
   const uint32_t prescaler = 225u;
 
   hall_timer.Instance               = TIM4;
-  hall_timer.Init.Period            = 0xFFFF;
+  hall_timer.Init.Period            = SPEED_COUNTER_MAX;
   hall_timer.Init.Prescaler         = prescaler - 1;
   hall_timer.Init.ClockDivision     = 0;
   hall_timer.Init.CounterMode       = TIM_COUNTERMODE_UP;
@@ -114,6 +115,7 @@ int hall_init(void)
   NVIC_EnableIRQ(TIM4_IRQn);
 
   hall_capture_overflow = 1;
+  speed_timer_cnt = SPEED_COUNTER_MAX;
 
   hall_state.current = 0;
   hall_state.previous = 0;
@@ -143,7 +145,7 @@ void TIM4_IRQHandler(void)
     hall_capture_overflow = 0;
 
     /* Get time period since last hall state change */
-    const uint32_t speed_timer_cnt = HAL_TIM_ReadCapturedValue(&hall_timer, TIM_CHANNEL_1); // Also clears IF
+    speed_timer_cnt = HAL_TIM_ReadCapturedValue(&hall_timer, TIM_CHANNEL_1); // Also clears IF
 
     /* Prepare for commutation. Assume we need to wait a factor of the latest hall period */
     hall_timer.Instance->CCR2 = (uint32_t) (((float) speed_timer_cnt) * p_commutation_delay);
@@ -223,7 +225,7 @@ static uint8_t direction(hall_state_t * const state)
 
 float hall_get_speed_raw_radps(void)
 {
-  const float t = speed_timer_resolution_s * (float) HAL_TIM_ReadCapturedValue(&hall_timer, TIM_CHANNEL_1);
+  const float t = speed_timer_resolution_s * (float) speed_timer_cnt;
 
   return hall_get_direction() * 2.0f*PI / ((float) HALL_NUMBER_OF_COMMUTATIONS * t);
 }

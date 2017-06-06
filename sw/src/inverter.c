@@ -75,6 +75,35 @@ static void direction_commutation(const float duty_req)
   prev_direction = direction;
 }
 
+#include "recorder.h"
+
+#define REC_POS_SAMPLES (2000)
+
+float rec_pos_buffer[REC_POS_SAMPLES];
+recorder_t rec_pos;
+
+CALMEAS_SYMBOL(float, mdbg_rec_pos, 0.0, "");
+CALMEAS_SYMBOL(uint8_t, pdbg_rec_start, 0, "");
+CALMEAS_SYMBOL(uint8_t, pdbg_rec_play, 0, "");
+
+void rec_pos_handler(void)
+{
+  static uint8_t pdbg_rec_start_prev = 0;
+
+  if (pdbg_rec_start && (pdbg_rec_start != pdbg_rec_start_prev)) {
+    rec_start(&rec_pos);
+  }
+  pdbg_rec_start_prev = pdbg_rec_start;
+
+  static uint8_t pdbg_rec_play_prev = 0;
+  if (pdbg_rec_play && (pdbg_rec_play != pdbg_rec_play_prev)) {
+    rec_play(&rec_pos);
+  }
+  pdbg_rec_play_prev = pdbg_rec_play;
+
+  rec_output(&rec_pos, &mdbg_rec_pos);
+}
+
 static void ivtr_period_by_period_handler(void)
 {
   //DBG_PAD3_SET;
@@ -86,9 +115,9 @@ static void ivtr_period_by_period_handler(void)
   m_ivtr_emf_b = adc_get_measurement(ADC_EMF_B);
   m_ivtr_emf_c = adc_get_measurement(ADC_EMF_C);
 
+  position_update_angle_filter(1.0f/((float)PWM_FREQUENCY_HZ));
 
-  (void) position_update_hall_angle_filter(1.0f/((float)PWM_FREQUENCY_HZ));
-
+  rec_input(&rec_pos, position_get_angle());
 
   float i_tot;
   switch (bldc6s_current_step()) {
@@ -183,12 +212,14 @@ static void ivtr_period_by_period_handler(void)
 
 static void hall_commutation(uint8_t current_hall_state)
 {
+#if 1
   DBG_PAD1_TOGGLE;
 
   if (current_hall_state == 1u) {
     DBG_PAD2_SET;
     DBG_PAD2_RESET;
   }
+#endif
 
   if (RUNNING == modes_current_mode()) {
     bldc6s_commutation(m_ivtr_direction_req, current_hall_state);
@@ -201,6 +232,8 @@ void ivtr_step(uint32_t period_ms)
 
   static uint32_t delay_ms = 0u;
   static int8_t step;
+
+  rec_pos_handler();
 
   switch (modes_current_mode()) {
 
@@ -270,6 +303,8 @@ void ivtr_request_duty_cycle(float duty_req)
 
 int ivtr_init(void)
 {
+  rec_init(&rec_pos, rec_pos_buffer, REC_POS_SAMPLES);
+
   adc_set_new_samples_indication_cb(ivtr_period_by_period_handler);
   hall_set_commutation_indication_cb(hall_commutation);
 

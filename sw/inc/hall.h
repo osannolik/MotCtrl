@@ -33,7 +33,7 @@
  * and the hall transition. 
  * Range 0-30.
  */
-#define HALL_SENSOR_OFFSET_DEG      (30)
+#define HALL_SENSOR_OFFSET_DEG      (0)
 
 /* When the offset is non-zero then it is required to delay the commutation in order
  * to get a stator flux vector that creates an angle to the rotor that varies from 120-60 deg.

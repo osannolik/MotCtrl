@@ -134,7 +134,7 @@ int encoder_init(void)
   __HAL_TIM_ENABLE_IT(&speed_timer, TIM_IT_UPDATE);
   __HAL_TIM_ENABLE_IT(&speed_timer, TIM_IT_CC1);
 
-  NVIC_SetPriority(TIM3_IRQn, 0x03u);
+  NVIC_SetPriority(TIM3_IRQn, ENCODER_IRQ_PRIO);
   NVIC_EnableIRQ(TIM3_IRQn);
 
   HAL_TIM_IC_Start_IT(&speed_timer, TIM_CHANNEL_1);
