@@ -8,6 +8,10 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
+
+#include <stdbool.h>
+
+
 typedef struct {
   float x_prev;
 } rate_limit_t;
@@ -19,6 +23,7 @@ int gcd(int a, int b);
 int lcm(int a, int b);
 float wrap_to_range_f(const float low, const float high, float x);
 int wrap_to_range_i(const int low, const int high, int x);
+
 
 #define MIN(x, y)             ((x)>(y) ? (y) : (x))
 #define MAX(x, y)             ((x)>(y) ? (x) : (y))

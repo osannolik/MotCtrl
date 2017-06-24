@@ -32,6 +32,12 @@ typedef enum {
 } bldc_cal_state_t;
 
 uint8_t bldc6s_current_step(void);
+void bldc6s_request_duty_cycle(const float duty);
+void bldc6s_period_by_period_handler(const float dt,
+                                     float i_a, float i_b, float i_c,
+                                     float emf_a, float emf_b, float emf_c);
+void bldc6s_allow_hall_commutation(const uint8_t onoff);
+void bldc6s_hall_commutation(uint8_t current_hall_state);
 void bldc6s_commutation(const uint8_t direction, const uint8_t current_hall_state);
 inline void bldc6s_set_commutation_step(const uint8_t step);
 void bldc6s_hall_calibration_step(uint32_t period_ms);
