@@ -44,6 +44,8 @@ int board_init(void)
 
 void board_step(const uint32_t period_ms)
 {
+  (void) period_ms;
+
   m_board_bat_v         = board_bat_voltage();
   m_board_temp_degC     = board_temp_degC();
   m_board_mcu_temp_degC = board_mcu_temp_degC();

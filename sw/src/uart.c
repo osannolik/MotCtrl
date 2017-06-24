@@ -7,7 +7,6 @@
 
 #include "stm32f4xx_hal.h"
 #include "uart.h"
-#include "com.h"
 
 
 #define MAX(X,Y) ((X)>=(Y)?(X):(Y))
@@ -28,7 +27,7 @@ static volatile uint8_t dma_buffer_rx[RX_BUF_LEN];
 static volatile uint8_t dma_buffer_tx[TX_BUF_LEN];
 
 
-uint32_t uart_send_data(uint8_t* pData, uint16_t len)
+uint32_t uart_send_data(uint8_t* pData, uint32_t len)
 {
   uint8_t *bufEntry;
   int32_t sent_data_len;
@@ -45,7 +44,7 @@ uint32_t uart_send_data(uint8_t* pData, uint16_t len)
     len = COBS_DATA_LEN_MAX;
   }
 
-  bufEntry = cobs_Encode((uint8_t *) pData, len, (uint8_t *) dma_buffer_tx);
+  bufEntry = cobs_Encode(pData, len, (uint8_t *) dma_buffer_tx);
   *bufEntry++ = UART_FRAME_DELIMITER;
 
   sent_data_len = uart_send_bytes((uint8_t *) dma_buffer_tx, (uint16_t) (bufEntry - dma_buffer_tx));
@@ -123,9 +122,9 @@ uint32_t uart_receive_data(uint8_t **data)
 
     }
 
-    decoded_len += cobs_Decode((uint8_t *) &uart_decode_buffer[decoded_len], \
+    decoded_len += cobs_Decode(&uart_decode_buffer[decoded_len], \
                                i_decode - decoded_len, \
-                               (uint8_t *) &uart_decode_buffer[decoded_len]);
+                               &uart_decode_buffer[decoded_len]);
     decoded_len -= UART_FRAME_DELIMITER_LEN;
 
     /* Continue filling the decode buffer right after the decoded data. */

@@ -144,7 +144,7 @@ void *list_sorted_get_iter_ref(list_sorted_t *list)
   if (next_item == NULL) {
     return NULL;
   } else {
-    return (void *) next_item->reference;
+    return next_item->reference;
   }
 }
 
@@ -215,6 +215,8 @@ uint32_t list_sorted_remove(list_item_t *item)
     (from_list->len)--;
     item->list = NULL;
 
+  } else {
+    return 0;
   }
 
   return from_list->len;

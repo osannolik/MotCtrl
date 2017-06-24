@@ -12,7 +12,7 @@
 void rt_sem_init(rt_sem_t *sem, uint32_t count)
 {
   sem->counter = count;
-  list_sorted_init((list_sorted_t *) &(sem->blocked));
+  list_sorted_init(&(sem->blocked));
 }
 
 uint32_t rt_sem_take_from_isr(rt_sem_t *sem)
@@ -43,7 +43,7 @@ uint32_t rt_sem_give_from_isr(rt_sem_t *sem)
     if (LIST_LENGTH(&(sem->blocked)) > 0) {
       // Unblock the highest prio blocked task
       rt_task_t unblocked_task = (rt_task_t) LIST_MAX_VALUE_REF(&(sem->blocked));
-      list_sorted_remove((list_item_t *) &(unblocked_task->blocked_list_item));
+      list_sorted_remove(&(unblocked_task->blocked_list_item));
       rt_list_task_undelayed(unblocked_task);
       rt_list_task_ready_next(unblocked_task);
 
@@ -69,7 +69,7 @@ uint32_t rt_sem_take(rt_sem_t *sem, const uint32_t ticks_timeout)
 
       // Add currently running task to blocked list
       blocked_list_item->value = current_task->priority;
-      list_sorted_insert((list_sorted_t *) &(sem->blocked), blocked_list_item);
+      list_sorted_insert(&(sem->blocked), blocked_list_item);
 
       // Suspend task for ticks_timeout ticks
       rt_list_task_delayed(current_task, rt_get_tick()+ticks_timeout);

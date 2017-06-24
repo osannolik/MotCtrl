@@ -65,6 +65,6 @@ void ext_dac_set_value_raw(uint32_t value)
 
 void ext_dac_set_value_volt(float dac_volt)
 {
-  ext_dac_set_value_raw(EXT_DAC_LSB_PER_VOLTAGE * dac_volt);
+  ext_dac_set_value_raw((uint32_t) (EXT_DAC_LSB_PER_VOLTAGE * dac_volt));
 }
 

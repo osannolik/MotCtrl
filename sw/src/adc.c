@@ -223,12 +223,12 @@ void ADC_IRQHandler(void)
 
   if(__HAL_ADC_GET_FLAG(&AdcHandle_1, ADC_FLAG_JEOC)) {
 
-    measurement_buffer[ADC_I_A]   = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, ADC_I_A_RANK);
-    measurement_buffer[ADC_EMF_A] = HAL_ADCEx_InjectedGetValue(&AdcHandle_1, ADC_EMF_A_RANK);
-    measurement_buffer[ADC_I_B]   = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, ADC_I_B_RANK);
-    measurement_buffer[ADC_EMF_B] = HAL_ADCEx_InjectedGetValue(&AdcHandle_2, ADC_EMF_B_RANK);
-    measurement_buffer[ADC_I_C]   = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, ADC_I_C_RANK);
-    measurement_buffer[ADC_EMF_C] = HAL_ADCEx_InjectedGetValue(&AdcHandle_3, ADC_EMF_C_RANK);
+    measurement_buffer[ADC_I_A]   = (uint16_t) HAL_ADCEx_InjectedGetValue(&AdcHandle_1, ADC_I_A_RANK);
+    measurement_buffer[ADC_EMF_A] = (uint16_t) HAL_ADCEx_InjectedGetValue(&AdcHandle_1, ADC_EMF_A_RANK);
+    measurement_buffer[ADC_I_B]   = (uint16_t) HAL_ADCEx_InjectedGetValue(&AdcHandle_2, ADC_I_B_RANK);
+    measurement_buffer[ADC_EMF_B] = (uint16_t) HAL_ADCEx_InjectedGetValue(&AdcHandle_2, ADC_EMF_B_RANK);
+    measurement_buffer[ADC_I_C]   = (uint16_t) HAL_ADCEx_InjectedGetValue(&AdcHandle_3, ADC_I_C_RANK);
+    measurement_buffer[ADC_EMF_C] = (uint16_t) HAL_ADCEx_InjectedGetValue(&AdcHandle_3, ADC_EMF_C_RANK);
 
     if (new_samples_indication_cb != NULL) {
       new_samples_indication_cb();

@@ -214,7 +214,7 @@ uint8_t bldc6s_current_step(void)
 
 void bldc6s_hall_calibration_step(uint32_t period_ms)
 {
-  static int8_t step;
+  static uint8_t step;
   static uint32_t delay_ms = 0u;
   const uint32_t rotation_delay_time_ms = 500u;
   const uint32_t probing_delay_time_ms = 500u;

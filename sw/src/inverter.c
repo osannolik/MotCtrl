@@ -57,7 +57,7 @@ static void direction_commutation(const float duty_req)
 {
   static uint8_t prev_direction = DIR_NONE;
 
-  float direction;
+  uint8_t direction;
 
   if (duty_req > 0.0f) {
     direction = DIR_CW;
@@ -115,7 +115,11 @@ static void ivtr_period_by_period_handler(void)
   m_ivtr_emf_b = adc_get_measurement(ADC_EMF_B);
   m_ivtr_emf_c = adc_get_measurement(ADC_EMF_C);
 
+#if 0
   position_update_angle_filter(1.0f/((float)PWM_FREQUENCY_HZ));
+#else
+  position_update_speed_filter(1.0f/((float)PWM_FREQUENCY_HZ));
+#endif
 
   rec_input(&rec_pos, position_get_angle());
 
@@ -231,7 +235,7 @@ void ivtr_step(uint32_t period_ms)
   static uint8_t prev_p_ivtr_manual_step = 0;
 
   static uint32_t delay_ms = 0u;
-  static int8_t step;
+  static uint8_t step;
 
   rec_pos_handler();
 
@@ -251,7 +255,7 @@ void ivtr_step(uint32_t period_ms)
       board_gate_driver_enable();
 
       if (p_ivtr_manual_step != prev_p_ivtr_manual_step) {
-        p_ivtr_manual_step = MIN(p_ivtr_manual_step, 6u);
+        p_ivtr_manual_step = (uint8_t) MIN(p_ivtr_manual_step, 6u);
         bldc6s_set_commutation_step(p_ivtr_manual_step);
       }
       prev_p_ivtr_manual_step = p_ivtr_manual_step;

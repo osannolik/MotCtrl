@@ -45,7 +45,7 @@ typedef struct
 #define UART_DATA_INIT {UART_IDLE, 0}
 
 uint32_t uart_receive_data(uint8_t **data);
-uint32_t uart_send_data(uint8_t* pData, uint16_t len);
+uint32_t uart_send_data(uint8_t* pData, uint32_t len);
 uint32_t uart_send_bytes(uint8_t* pData, uint16_t len);
 int uart_init();
 

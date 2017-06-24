@@ -7,7 +7,7 @@
 
 
 static int com_do_callback(com_message_t *msg);
-static void com_commands_callback_handler(com_message_t *msg);
+static void com_commands_callback_handler(com_message_t * const msg);
 static int com_commands_read(com_message_t *msg_request);
 static int com_commands_write(com_message_t *msg_request);
 
@@ -40,7 +40,7 @@ int com_init()
   return 0;
 }
 
-int com_enable_interface(uint8_t new_interface, void (*callback)(com_message_t *))
+int com_enable_interface(uint8_t new_interface, void (*callback)(com_message_t * const))
 {
   if (new_interface >= COM_NUMBER_OF_INTERFACES || callback == NULL) {
     return -1;
@@ -82,7 +82,7 @@ int com_parse_message(uint8_t *data, uint32_t len, uint8_t port)
   // Input is either partial or full packet, or a combination
   // Could be called directly from port's rx-handler
   uint32_t i;
-  com_message_t * const inbox_msg = (com_message_t *) &com_data[port].message;
+  com_message_t * const inbox_msg = &com_data[port].message;
 
 #if (COM_CRC_LEN_RX > 0)
   uint8_t crc;
@@ -171,8 +171,8 @@ int com_put_message(com_message_t *msg)
 
   const uint8_t header[COM_PACKET_OVERHEAD_SIZE] = {
       COM_PACKET_START,
-      (0xFFu & msg->len),
-      (msg->len >> 8),
+      (uint8_t) (0xFFu & msg->len),
+      (uint8_t) (msg->len >> 8),
       msg->header.status
   };
 
@@ -199,7 +199,7 @@ int com_send_messages(uint8_t port)
   uint8_t *start_address;
   uint32_t len, sent_bytes;
 
-  while ( (len = queue_Occupied_address_range(buffer, &start_address)) ) {
+  while ( (len = (uint32_t) queue_Occupied_address_range(buffer, &start_address)) ) {
     sent_bytes = com_data[port].send_hook(start_address, len);
 
     if (sent_bytes == 0) {
@@ -259,7 +259,7 @@ int com_commands_send_error(com_message_t *msg)
   return com_put_message(msg);
 }
 
-static void com_commands_callback_handler(com_message_t *msg)
+static void com_commands_callback_handler(com_message_t * const msg)
 {
   switch (msg->header.id) {
     case COM_WRITE_TO:
@@ -303,7 +303,7 @@ static int com_commands_read(com_message_t *msg_request)
 static int com_commands_write(com_message_t *msg_request)
 {
   com_commander_memory_range_t *to = (com_commander_memory_range_t *) msg_request->address;
-  uint8_t *data = (uint8_t *) ( ((uint8_t *)msg_request->address) + sizeof(com_commander_memory_range_t) );
+  uint8_t *data = msg_request->address + sizeof(com_commander_memory_range_t);
   uint16_t i;
 
   if (msg_request->len != sizeof(com_commander_memory_range_t) + to->len) {

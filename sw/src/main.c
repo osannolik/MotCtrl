@@ -9,7 +9,6 @@
 #include "board.h"
 #include "position.h"
 #include "pwm.h"
-#include "adc.h"
 #include "ext.h"
 #include "inverter.h"
 #include "control.h"
@@ -48,9 +47,10 @@ int main(void)
   ext_init();
 
   modes_init();
-  position_init(HALL);
+  position_init(ENCODER);
   ivtr_init();
   spdctrl_init();
+  ctrl_init();
 
   uart_init();
   com_init();
@@ -66,7 +66,7 @@ int main(void)
   return 0;
 }
 
-#if 0
+#if 1
 CALMEAS_SYMBOL(float, mdbg_pos_angle, 0, "");
 CALMEAS_SYMBOL(float, mdbg_pos_speed, 0, "");
 
@@ -76,6 +76,8 @@ CALMEAS_SYMBOL(float, mdbg_pos_speed_raw, 0, "");
 
 void application_task(void *p)
 {
+  (void) p;
+
   uint32_t lcm_ms;
   uint32_t task_period_ms;
 
@@ -85,16 +87,16 @@ void application_task(void *p)
   const uint32_t control_period_ms  = 1u;
 
   task_period_ms = inverter_period_ms;
-  lcm_ms = lcm(task_period_ms, inverter_period_ms);
+  lcm_ms = (uint32_t) lcm(task_period_ms, inverter_period_ms);
 
   task_period_ms = MIN(task_period_ms, modes_period_ms);
-  lcm_ms = lcm(lcm_ms, modes_period_ms);
+  lcm_ms = (uint32_t) lcm(lcm_ms, modes_period_ms);
 
   task_period_ms = MIN(task_period_ms, board_period_ms);
-  lcm_ms = lcm(lcm_ms, board_period_ms);
+  lcm_ms = (uint32_t) lcm(lcm_ms, board_period_ms);
 
   task_period_ms = MIN(task_period_ms, control_period_ms);
-  lcm_ms = lcm(lcm_ms, control_period_ms);
+  lcm_ms = (uint32_t) lcm(lcm_ms, control_period_ms);
 
   static uint32_t task_ticker = 0;
 
@@ -136,6 +138,8 @@ void application_task(void *p)
 
 void logger_task(void *p)
 {
+  (void) p;
+
   uint8_t com_period_counter = 0;
 
   while (1) {

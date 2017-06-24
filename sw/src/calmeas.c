@@ -126,8 +126,8 @@ static int calmeas_send_raster(const uint8_t raster)
 
 static uint8_t calmeas_get_measurement(uint8_t * const to_address, const calmeas_meta_t * const meta)
 {
-  uint8_t type_len = CALMEAS_TYPECODE_LEN(meta->typecode);
-  
+  uint8_t type_len = (uint8_t) CALMEAS_TYPECODE_LEN(meta->typecode);
+
   _CALMEAS_ENTER_CRITICAL();
   {
 
@@ -214,7 +214,7 @@ static int calmeas_send_symbol_name(com_message_t * const msg_request)
     return -1;
   }
 
-  uint8_t meta_idx = *((uint8_t *) msg_request->address);
+  uint8_t meta_idx = *(msg_request->address);
   calmeas_meta_t *meta = &(calmeas_meta_ptr[meta_idx]);
 
   uint8_t name_length = 0;
@@ -241,7 +241,7 @@ static int calmeas_send_symbol_description(com_message_t * const msg_request)
     return -1;
   }
 
-  uint8_t meta_idx = *((uint8_t *) msg_request->address);
+  uint8_t meta_idx = *(msg_request->address);
   calmeas_meta_t *meta = &(calmeas_meta_ptr[meta_idx]);
 
   uint8_t desc_length = 0;
@@ -275,14 +275,14 @@ static int calmeas_send_raster_periods(void)
 
 static int calmeas_set_raster(com_message_t * const msg)
 {
-  uint8_t *data = (uint8_t *) msg->address;
+  uint8_t *data = msg->address;
   uint8_t i, raster = *data++;
 
   if (raster>=CALMEAS_RASTERS_NBR || msg->len==0 || (msg->len-1) > CALMEAS_RASTERS_LEN_MAX) {
     return -1;
   }
 
-  calmeas_rasters_len[raster] = msg->len - 1;
+  calmeas_rasters_len[raster] = (uint8_t) (msg->len - 1);
 
   for (i=0; i<calmeas_rasters_len[raster]; i++) {
     calmeas_rasters_meta_idx[raster][i] = data[i];

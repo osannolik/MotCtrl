@@ -6,7 +6,6 @@
  */
 
 #include "rt_queue.h"
-#include "rt_kernel.h"
 
 
 uint32_t rt_queue_init(rt_queue_t *queue, uint8_t *buffer, uint32_t item_size, uint32_t max_items)
@@ -19,8 +18,8 @@ uint32_t rt_queue_init(rt_queue_t *queue, uint8_t *buffer, uint32_t item_size, u
   queue->max_items = max_items;
   queue->items = 0;
 
-  list_sorted_init((list_sorted_t *) &(queue->blocked_push));
-  list_sorted_init((list_sorted_t *) &(queue->blocked_pull));
+  list_sorted_init(&(queue->blocked_push));
+  list_sorted_init(&(queue->blocked_pull));
 
   return RT_OK;
 }
@@ -58,7 +57,7 @@ uint32_t rt_queue_push_from_isr(rt_queue_t *queue, const void * const item)
       if (LIST_LENGTH(&(queue->blocked_pull)) > 0) {
         // Unblock the highest prio blocked task
         rt_task_t unblocked_task = (rt_task_t) LIST_MAX_VALUE_REF(&(queue->blocked_pull));
-        list_sorted_remove((list_item_t *) &(unblocked_task->blocked_list_item));
+        list_sorted_remove(&(unblocked_task->blocked_list_item));
         rt_list_task_undelayed(unblocked_task);
         rt_list_task_ready_next(unblocked_task);
 
@@ -90,7 +89,7 @@ uint32_t rt_queue_push(rt_queue_t *queue, const void * const item, const uint32_
 
       // Add currently running task to blocked list
       blocked_list_item->value = current_task->priority;
-      list_sorted_insert((list_sorted_t *) &(queue->blocked_push), blocked_list_item);
+      list_sorted_insert(&(queue->blocked_push), blocked_list_item);
 
       // Suspend task for ticks_timeout ticks
       rt_list_task_delayed(current_task, rt_get_tick()+ticks_timeout);
@@ -156,7 +155,7 @@ uint32_t rt_queue_pull_from_isr(rt_queue_t *queue, void * const item)
       if (LIST_LENGTH(&(queue->blocked_push)) > 0) {
         // Unblock the highest prio blocked task
         rt_task_t unblocked_task = (rt_task_t) LIST_MAX_VALUE_REF(&(queue->blocked_push));
-        list_sorted_remove((list_item_t *) &(unblocked_task->blocked_list_item));
+        list_sorted_remove(&(unblocked_task->blocked_list_item));
         rt_list_task_undelayed(unblocked_task);
         rt_list_task_ready_next(unblocked_task);
 
@@ -186,7 +185,7 @@ uint32_t rt_queue_pull(rt_queue_t *queue, void * const item, const uint32_t tick
 
       // Add currently running task to blocked list
       blocked_list_item->value = current_task->priority;
-      list_sorted_insert((list_sorted_t *) &(queue->blocked_pull), blocked_list_item);
+      list_sorted_insert(&(queue->blocked_pull), blocked_list_item);
 
       // Suspend task for ticks_timeout ticks
       rt_list_task_delayed(current_task, rt_get_tick()+ticks_timeout);

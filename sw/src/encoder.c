@@ -199,7 +199,7 @@ void encoder_set_angle_rad(float angle0)
 {
   angle0 = wrap_to_range_f(0.0f, 2.0f*PI, angle0);
   const float set_counter = roundf(angle0 * counts_per_revolution/(2.0f*PI));
-  encoder_set_counter(set_counter);
+  encoder_set_counter((uint32_t) set_counter);
 }
 
 void encoder_set_angle_deg(const float angle0)
@@ -214,5 +214,5 @@ uint32_t encoder_get_counter(void)
 
 void encoder_set_counter(const uint32_t cnt0)
 {
-  encoder_timer.Instance->CNT = wrap_to_range_i(0, (int) counts_per_revolution, cnt0);
+  encoder_timer.Instance->CNT = (uint32_t) wrap_to_range_i(0, (int) counts_per_revolution, cnt0);
 }

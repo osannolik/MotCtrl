@@ -37,6 +37,7 @@ static uint8_t           perf_cpu_load = 0;
 
 void rt_idle(void *p)
 {
+  (void) p;
   while (1) {
 #if RT_USE_PERF
     perf_calculate_cpu_load(&perf_cpu_load);
@@ -57,7 +58,7 @@ static void perf_calculate_cpu_load(uint8_t *load)
 
   if (tick_delta >= PERF_CALC_TICK_PERIOD_MIN) {
     counts_per_tick = idle_cntr / tick_delta;
-    *load = (uint8_t) 100 - (100 * counts_per_tick) / PERF_COUNTS_PER_TICK_NOLOAD;
+    *load = (uint8_t) (100 - (100 * counts_per_tick) / PERF_COUNTS_PER_TICK_NOLOAD);
     idle_cntr = 0;
     last_tick = tick;
   }
@@ -111,7 +112,7 @@ uint32_t rt_get_tick(void)
 static uint32_t * rt_init_stack(void *code, void * const task_parameters, const uint32_t stack_size, volatile void * stack_data)
 {
   uint32_t *stackptr = (uint32_t *) stack_data;
-  stackptr = (uint32_t*) &stackptr[stack_size-1];
+  stackptr = &stackptr[stack_size-1];
 
   // Needs to be 8-byte aligned
   if ((uint32_t) stackptr & 0x04) {
@@ -387,5 +388,5 @@ void rt_switch_context()
 
 void rt_error_handler(uint8_t err)
 {
-
+  (void) err;
 }

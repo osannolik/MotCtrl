@@ -81,7 +81,7 @@ typedef struct {
   // TODO: If adding your own ports you need to implement these functions.
   // Send: Gets pointer to data and number of bytes to send. Return number of bytes sent. 
   // Receive: Return number of bytes received, and by parameter a pointer to data
-  uint32_t (*send_hook)(uint8_t *data, uint16_t len);
+  uint32_t (*send_hook)(uint8_t *data, uint32_t len);
   uint32_t (*receive_hook)(uint8_t **data);
 
   uint8_t buffer_rx[COM_BUFFER_RX_SIZE];
@@ -100,7 +100,7 @@ typedef struct {
 
 
 int com_init();
-int com_enable_interface(uint8_t new_interface, void (*callback)(com_message_t *));
+int com_enable_interface(uint8_t new_interface, void (*callback)(com_message_t * const));
 int com_disable_interface(uint8_t di_interface);
 int com_receive_message(uint8_t port);
 int com_parse_message(uint8_t *data, uint32_t len, uint8_t port);
