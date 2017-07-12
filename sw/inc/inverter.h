@@ -13,6 +13,7 @@
 
 void ivtr_step(uint32_t period_ms);
 void ivtr_request_duty_cycle(float duty_req);
+void ivtr_request_current(const float i_d, const float i_q);
 int ivtr_init(void);
 void ivtr_idle_state(void);
 void ivtr_safe_state(void);

@@ -11,8 +11,11 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#define CTRL_MODE_DUTY  (0u)
-#define CTRL_MODE_SPEED (1u)
+enum CTRL_MODE {
+  CTRL_MODE_DUTY = 0u,
+  CTRL_MODE_SPEED = 1u,
+  CTRL_MODE_CURRENT = 2u
+};
 
 void ctrl_step(const uint32_t period_ms);
 int ctrl_init(void);

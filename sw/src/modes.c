@@ -8,6 +8,7 @@
 #include "modes.h"
 #include "board.h"
 #include "bldc_6step.h"
+#include "foc.h"
 
 #include "calmeas.h"
 
@@ -34,16 +35,34 @@ void modes_step(uint32_t period_ms)
       if (board_button_pressed()) {
         delay_ms += period_ms;
         if (delay_ms >= button_hold_time_ms) {
+#if 0
           mode = BLDC_HALL_CALIBRATION;
+#else
+          mode = FOC_SENSOR_ALIGNMENT;
+#endif
         }
       } else {
         delay_ms = 0u;
       }
       break;
-    
+
+    case FOC_SENSOR_ALIGNMENT:
+      switch (foc_sensor_alignment_state()) {
+        case ALIGNMENT_OK:
+          mode = RUNNING; break;
+        case ALIGNMENT_FAILED:
+          mode = INACTIVE; break;
+        default: break;
+      }
+      break;
+
     case BLDC_HALL_CALIBRATION:
-      if (CAL_OK == bldc6s_cal_state()) {
-        mode = RUNNING;
+      switch (bldc6s_cal_state()) {
+        case CAL_OK:
+          mode = RUNNING; break;
+        case CAL_FAILED:
+          mode = INACTIVE; break;
+        default: break;
       }
       break;
 

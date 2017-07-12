@@ -6,6 +6,7 @@
  */
 
 #include "bldc_6step.h"
+#include "math.h"
 #include "hall.h"
 #include "inverter.h"
 #include "pwm.h"
@@ -317,7 +318,7 @@ void bldc6s_period_by_period_handler(const float dt,
       break;
   }
 
-  i_tot = MAX(i_tot, 0.0f);
+  i_tot = maxf(i_tot, 0.0f);
 
   static float i_tot_hist[I_HIST_LEN];
   static uint32_t i_index = 0;
@@ -353,7 +354,7 @@ void bldc6s_period_by_period_handler(const float dt,
 
   direction_commutation(m_bldc6s_duty_set);
 
-  pwm_set_duty_gate_abc_perc(ABS(m_bldc6s_duty_set));
+  pwm_set_duty_gate_abc_perc(fabsf(m_bldc6s_duty_set));
 
   pwm_set_sample_trigger_perc(p_bldc6s_sample_trigger);
   //pwm_set_sample_trigger_perc(p_bldc6s_sample_trigger * m_bldc6s_duty_set);

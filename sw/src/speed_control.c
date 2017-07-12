@@ -30,9 +30,9 @@ float spdctrl_controller(const float speed, const float speed_setpoint, const fl
   float u = p_spd_gain_kp * error + integral;
 
   if (speed_setpoint >= 0) {
-    u = MAX(u, 0.0f);
+    u = maxf(u, 0.0f);
   } else {
-    u = MIN(u, 0.0f);
+    u = minf(u, 0.0f);
   }
 
   u = rate_limit(&rlim_spdctrl, u, -p_spd_u_rate_max, p_spd_u_rate_max);

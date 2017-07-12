@@ -8,6 +8,7 @@
 #include "inverter.h"
 #include "position.h"
 #include "bldc_6step.h"
+#include "foc.h"
 #include "utils.h"
 #include "modes.h"
 #include "pwm.h"
@@ -30,8 +31,9 @@ CALMEAS_SYMBOL(float, m_ivtr_emf_c, 0.0f, "");
 
 /* Parameters */
 CALMEAS_SYMBOL(uint8_t,  p_ivtr_manual_step, 0, "");
-CALMEAS_SYMBOL(uint8_t,  p_ivtr_debug_output_sel, 0, "");
+//CALMEAS_SYMBOL(uint8_t,  p_ivtr_debug_output_sel, 0, "");
 
+/*
 #include "recorder.h"
 
 #define REC_POS_SAMPLES (2000)
@@ -60,10 +62,11 @@ void rec_pos_handler(void)
 
   rec_output(&rec_pos, &mdbg_rec_pos);
 }
+*/
 
 static void ivtr_period_by_period_handler(void)
 {
-  //DBG_PAD3_SET;
+  DBG_PAD3_SET;
 
   const float dt = 1.0f/((float)PWM_FREQUENCY_HZ);
 
@@ -80,17 +83,23 @@ static void ivtr_period_by_period_handler(void)
   position_update_speed_filter(dt);
 #endif
 
-  rec_input(&rec_pos, position_get_angle());
+  //rec_input(&rec_pos, position_get_angle());
 
+#if 0
   bldc6s_period_by_period_handler(dt,
                                   m_ivtr_i_a, m_ivtr_i_b, m_ivtr_i_c,
                                   m_ivtr_emf_a, m_ivtr_emf_b, m_ivtr_emf_c);
+#else
+  foc_period_by_period_handler(dt,
+                               m_ivtr_i_a, m_ivtr_i_b, m_ivtr_i_c,
+                               m_ivtr_emf_a, m_ivtr_emf_b, m_ivtr_emf_c);
+#endif
 
-  if (p_ivtr_debug_output_sel <= ADC_EMF_C) {
-    ext_dac_set_value_raw(adc_get_measurement_raw((adc_measurement_t) p_ivtr_debug_output_sel));
-  }
+  //if (p_ivtr_debug_output_sel <= ADC_EMF_C) {
+  //  ext_dac_set_value_raw(adc_get_measurement_raw((adc_measurement_t) p_ivtr_debug_output_sel));
+  //}
 
-  //DBG_PAD3_RESET;
+  DBG_PAD3_RESET;
 }
 
 void ivtr_step(uint32_t period_ms)
@@ -104,6 +113,11 @@ void ivtr_step(uint32_t period_ms)
     case BLDC_HALL_CALIBRATION:
       board_gate_driver_enable();
       bldc6s_hall_calibration_step(period_ms);
+      break;
+
+    case FOC_SENSOR_ALIGNMENT:
+      board_gate_driver_enable();
+      foc_sensor_alignment_step(period_ms);
       break;
 
     case RUNNING:
@@ -134,9 +148,12 @@ void ivtr_idle_state(void)
 {
   board_gate_driver_disable();
 
+#if 0
   bldc6s_set_commutation_step(STEP_OFF);
-
   pwm_set_duty_gate_abc_perc(0.0f);
+#else
+  pwm_set_duty_gate_abc_perc(50.0f);
+#endif
 
   ivtr_request_duty_cycle(0.0f);
 }
@@ -153,14 +170,20 @@ void ivtr_request_duty_cycle(float duty_req)
   bldc6s_request_duty_cycle(duty_req);
 }
 
+void ivtr_request_current(const float i_d, const float i_q)
+{
+  foc_request_current(i_d, i_q);
+}
+
 int ivtr_init(void)
 {
-  rec_init(&rec_pos, rec_pos_buffer, REC_POS_SAMPLES);
+  //rec_init(&rec_pos, rec_pos_buffer, REC_POS_SAMPLES);
 
   adc_set_new_samples_indication_cb(ivtr_period_by_period_handler);
   hall_set_commutation_indication_cb(bldc6s_hall_commutation);
 
   bldc6s_init();
+  foc_init();
 
   return 0;
 }

@@ -13,7 +13,7 @@
 #define ADC_VREF                    (3.3f)
 #define ADC_VOLTAGE_PER_LSB         (ADC_VREF / 4095.0f) // 12 bit
 
-#define ADC_REGCONV_SAMPLE_FREQ_HZ  (10000u)
+#define ADC_REGCONV_SAMPLE_FREQ_HZ  (14000u)
 #define ADC_REGCONV_PRESCALER       (4u)
 
 #define ADC_I_A_PIN                 GPIO_PIN_1

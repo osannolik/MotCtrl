@@ -7,7 +7,7 @@
 
 #include "pwm.h"
 #include "utils.h"
-
+#include "math.h"
 #include "calmeas.h"
 
 
@@ -220,7 +220,7 @@ void pwm_disable_sample_trigger(void)
 void pwm_set_sample_trigger_perc(const float duty)
 {
   const uint32_t full_period = m_pwm_period - 1;
-  const uint32_t ccr = (uint32_t) (0.01f * ABS(duty) * (float)full_period);
+  const uint32_t ccr = (uint32_t) (0.01f * fabsf(duty) * (float)full_period);
 
   TIMhandle.Instance->CCR4 = MIN(MAX(ccr, 1u), full_period);
 
@@ -244,6 +244,15 @@ void pwm_set_duty_gate_abc_perc(const float duty)
   TIMhandle.Instance->CCR1 = duty_period;
   TIMhandle.Instance->CCR2 = duty_period;
   TIMhandle.Instance->CCR3 = duty_period;
+}
+
+void pwm_set_duty_gate_perc(const float duty_a, const float duty_b, const float duty_c)
+{
+  const float max_period = (float) m_pwm_period * 0.01f;
+
+  TIMhandle.Instance->CCR1 = (uint32_t) (duty_a * max_period);
+  TIMhandle.Instance->CCR2 = (uint32_t) (duty_b * max_period);
+  TIMhandle.Instance->CCR3 = (uint32_t) (duty_c * max_period);
 }
 
 void pwm_set_duty_gate_a_perc(const float duty)

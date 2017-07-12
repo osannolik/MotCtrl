@@ -219,7 +219,7 @@ int adc_init()
 #include "debug.h"
 void ADC_IRQHandler(void)
 {
-  DBG_PAD3_SET;
+  //DBG_PAD3_SET;
 
   if(__HAL_ADC_GET_FLAG(&AdcHandle_1, ADC_FLAG_JEOC)) {
 
@@ -243,7 +243,7 @@ void ADC_IRQHandler(void)
     fault_general_failure();
   }
 
-  DBG_PAD3_RESET;
+  //DBG_PAD3_RESET;
 }
 
 float adc_get_measurement(adc_measurement_t m)

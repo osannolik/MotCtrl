@@ -46,6 +46,7 @@ int pwm_init(void);
 void pwm_disable_sample_trigger(void);
 void pwm_set_sample_trigger_perc(const float duty);
 void pwm_set_duty_gate_abc_perc(const float duty);
+void pwm_set_duty_gate_perc(const float duty_a, const float duty_b, const float duty_c);
 void pwm_set_duty_gate_a_perc(const float duty);
 void pwm_set_duty_gate_b_perc(const float duty);
 void pwm_set_duty_gate_c_perc(const float duty);

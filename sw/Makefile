@@ -66,7 +66,7 @@ CFLAGS = $(addprefix -I,$(INCDIRS))
 #CFLAGS += -D__FPU_USED
 CFLAGS += -Wall -Wdouble-promotion -MMD -MP -g
 CFLAGS += -Og
-CFLAGS += -fsingle-precision-constant -fno-common -fno-builtin #-ffunction-sections -fdata-sections
+CFLAGS += -fsingle-precision-constant -fno-common #-fno-builtin #-ffunction-sections -fdata-sections
 CFLAGS += -mthumb -mcpu=cortex-m4 -mfloat-abi=hard -mfpu=fpv4-sp-d16 -mthumb-interwork
 #  add -mfix-cortex-m3-ldrd for cortex-m3
 
