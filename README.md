@@ -19,3 +19,6 @@ A small inverter for brushless motors.
 <img src="hw/doc/png/PCB_00_RevA_3D.png" width="800">
 <img src="hw/doc/png/PCB_00_RevA_Front.png" width="800">
 <img src="hw/doc/png/PCB_00_RevA_Back.png" width="800">
+
+# License
+GNU GPLv3 (both hardware and experimental software)
